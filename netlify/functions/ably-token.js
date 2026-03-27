@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 function badRequest(message) {
   return {
     statusCode: 400,
@@ -80,6 +82,19 @@ exports.handler = async function handler(event) {
     : { [channel]: ['publish', 'subscribe', 'presence'] };
 
   try {
+    const timestamp = Date.now();
+    const nonce = crypto.randomBytes(16).toString('hex');
+    const capabilityJson = JSON.stringify(capability);
+    const signText = [
+      keyName,
+      String(ttl),
+      capabilityJson,
+      clientId,
+      String(timestamp),
+      nonce
+    ].join('\n');
+    const mac = crypto.createHmac('sha256', keySecret).update(signText).digest('base64');
+
     const basic = Buffer.from(`${keyName}:${keySecret}`).toString('base64');
     const response = await fetch(`https://rest.ably.io/keys/${encodeURIComponent(keyName)}/requestToken`, {
       method: 'POST',
@@ -88,9 +103,13 @@ exports.handler = async function handler(event) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        keyName,
         clientId,
         ttl,
-        capability: JSON.stringify(capability)
+        capability: capabilityJson,
+        timestamp,
+        nonce,
+        mac
       })
     });
 
