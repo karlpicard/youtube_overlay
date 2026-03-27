@@ -2,26 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Score Controller</title>
 <script src="https://cdn.jsdelivr.net/npm/ably@1/ably.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0e0e1a;
-    --surface: #1a1a2e;
-    --surface2: #22223a;
-    --border: rgba(255,255,255,0.08);
+  const rawQueryMatch = window.location.search.match(/[?&]ablyKey=([^&]+)/);
+  const rawAblyKeyFromQuery = rawQueryMatch ? decodeURIComponent(rawQueryMatch[1]) : '';
+  const urlChannel = (params.get('channel') || '').trim();
+  const urlAblyKey = (params.get('ablyKey') || rawAblyKeyFromQuery || '').trim();
+  const urlYoutubeLive = (params.get('youtubeLiveUrl') || '').trim();
+  const urlSlackWebhook = (params.get('slackWebhook') || '').trim();
     --text: #ffffff;
-    --muted: #8888aa;
+
+  function safeStorageGet(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
 
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+  if (urlChannel) safeStorageSet('overlayChannel', urlChannel);
+  if (urlAblyKey) safeStorageSet('ablyKey', urlAblyKey);
+  if (urlYoutubeLive) safeStorageSet('youtubeLiveUrl', urlYoutubeLive);
+  if (urlSlackWebhook) safeStorageSet('slackWebhook', urlSlackWebhook);
+  if (urlAutoSlack) safeStorageSet('autoSlack', urlAutoSlack === '1' ? '1' : '0');
+  let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
+  let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
+  let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
+  let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || '';
+  let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
+  let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
+  let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
+  let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || '';
+
+  if (urlChannel) safeStorageSet('overlayChannel', urlChannel);
+  if (urlAblyKey) safeStorageSet('ablyKey', urlAblyKey);
+  if (urlYoutubeLive) safeStorageSet('youtubeLiveUrl', urlYoutubeLive);
+  if (urlSlackWebhook) safeStorageSet('slackWebhook', urlSlackWebhook);
+  if (urlAutoSlack) safeStorageSet('autoSlack', urlAutoSlack === '1' ? '1' : '0');
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -88,13 +109,18 @@
   .main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 
   /* Team cards */
-  .team-card {
+    .live-details {
     background: var(--surface);
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(122,146,255,0.4);
   }
-
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #1a1a38 0%, #14142a 100%);
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(120, 160, 255, 0.08);
+    }
   .team-card-header {
     display: flex;
     align-items: center;
@@ -230,148 +256,6 @@
     transition: background 0.15s;
   }
   .reset-btn:active { background: rgba(255,80,80,0.1); }
-
-  .reset-warning {
-    border: 1px solid rgba(255,80,80,0.35);
-    border-radius: 10px;
-    background: rgba(120,25,25,0.18);
-    padding: 12px;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .reset-warning.show { display: flex; }
-
-  .reset-warning-text {
-    color: #ffd1d1;
-    font-size: 13px;
-    line-height: 1.35;
-  }
-
-  .live-card {
-    background: var(--surface);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .live-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .live-input {
-    width: 100%;
-    background: #13132a;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: #fff;
-    padding: 10px 12px;
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    outline: none;
-  }
-
-  .live-input::placeholder { color: #77779a; }
-
-  .live-btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .live-btn {
-    width: 100%;
-    padding: 11px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: #fff;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  .live-btn.primary {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-
-  .live-hint {
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.35;
-  }
-
-  .live-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #c8c8e0;
-    font-size: 12px;
-  }
-
-  .live-status {
-    color: #9fb1ff;
-    font-size: 12px;
-    min-height: 16px;
-  }
-
-  .live-details {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #14142a;
-    overflow: hidden;
-  }
-
-  .live-details summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    color: #e5e9ff;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    list-style: none;
-    padding: 11px 12px;
-    background: #1b1b35;
-    border-bottom: 1px solid transparent;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  .live-details summary::after {
-    content: 'Tap to expand \25BE';
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    text-transform: none;
-    color: #9fb1ff;
-  }
-
-  .live-details[open] summary {
-    border-bottom-color: var(--border);
-    background: #212142;
-  }
-
-  .live-details[open] summary::after {
-    content: 'Tap to collapse \25B4';
-  }
-
-  .live-details summary::-webkit-details-marker { display: none; }
-
-  .live-details-body {
-    padding: 10px;
-    display: grid;
-    gap: 8px;
-  }
 </style>
 </head>
 <body>
@@ -386,7 +270,7 @@
 
 <!-- Mini preview -->
 <div class="preview">
-  <div class="prev-team prev-team-a"><span id="prevNameA">LINCOLN</span></div>
+  <div class="prev-team prev-team-a"><span id="prevNameA">HOME</span></div>
   <div class="prev-center">
     <div class="prev-score" id="prevScoreA" style="background:#c0392b;">0</div>
     <div class="prev-half" id="prevHalf">1H</div>
@@ -399,7 +283,7 @@
   <!-- Team A -->
   <div class="team-card">
     <div class="team-card-header">
-      <input class="team-name-input" id="nameA" type="text" value="LINCOLN" maxlength="12" placeholder="Team A" oninput="onNameChange('A')" />
+      <input class="team-name-input" id="nameA" type="text" value="HOME" maxlength="12" placeholder="Team A" oninput="onNameChange('A')" />
       <div class="color-swatch" id="swatchA" style="background:#c0392b;">
         <input type="color" id="colorA" value="#c0392b" oninput="onColorChange('A')" />
       </div>
@@ -439,297 +323,36 @@
     </div>
   </div>
 
-  <div class="live-card">
-    <div class="half-label">YouTube Live Link</div>
-    <div class="live-grid">
-      <input class="live-input" id="youtubeLiveUrl" type="text" placeholder="YouTube live stream URL (viewer link)" />
-    </div>
-
-    <div class="live-btn-row">
-      <button class="live-btn primary" onclick="copyYoutubeLiveUrl()">Copy YouTube Live URL</button>
-      <button class="live-btn" onclick="sendYoutubeLiveToSlack()">Send YouTube Link to Slack</button>
-    </div>
-    <button class="live-btn" onclick="openYoutubeLiveFinder()">Find Active Stream on YouTube</button>
-
-    <details class="live-details">
-      <summary>Other URL details and live sync settings</summary>
-      <div class="live-details-body">
-        <input class="live-input" id="liveChannel" type="text" placeholder="Live channel (example: match-001)" />
-        <input class="live-input" id="liveAblyKey" type="text" placeholder="Ably key for cross-device sync" />
-        <input class="live-input" id="slackWebhook" type="text" placeholder="Slack incoming webhook URL" />
-        <label class="live-toggle"><input type="checkbox" id="autoSlack" /> Auto-send Slack update when applying settings</label>
-        <div class="live-btn-row">
-          <button class="live-btn" onclick="applyLiveSettings()">Apply Live Settings</button>
-          <button class="live-btn" onclick="sendSlackUpdate()">Send to Slack</button>
-        </div>
-        <div class="live-btn-row">
-          <button class="live-btn" onclick="copyLiveUrl('overlay')">Copy Overlay URL</button>
-          <button class="live-btn" onclick="copyLiveUrl('controller')">Copy Controller URL</button>
-        </div>
-        <div class="live-btn-row">
-          <button class="live-btn" onclick="openYoutubeLiveUrl()">Open YouTube Live URL</button>
-          <div></div>
-        </div>
-        <div class="live-hint" id="liveHint"></div>
-      </div>
-    </details>
-
-    <div class="live-status" id="liveStatus"></div>
-  </div>
-
-  <button class="reset-btn" onclick="requestResetScores()">Reset Scoreboard</button>
-  <div class="reset-warning" id="resetWarning">
-      <div class="reset-warning-text">Warning: this will reset team names and scores to defaults (and period to 1H) on the live overlay. Do you want to continue?</div>
-    <div class="live-btn-row">
-      <button class="live-btn" onclick="cancelResetScores()">Cancel</button>
-        <button class="live-btn" onclick="confirmResetScores()">Yes, reset scoreboard</button>
-    </div>
-  </div>
+  <button class="reset-btn" onclick="resetScores()">Reset scores</button>
 </div>
 
 <script>
-  const params = new URLSearchParams(window.location.search);
-  const urlChannel = params.get('channel');
-  const urlAblyKey = params.get('ablyKey');
-  const urlYoutubeLive = params.get('youtubeLiveUrl');
-  const urlSlackWebhook = params.get('slackWebhook');
-  const urlAutoSlack = params.get('autoSlack');
-  if (urlChannel) localStorage.setItem('overlayChannel', urlChannel);
-  if (urlAblyKey) localStorage.setItem('ablyKey', urlAblyKey);
-  if (urlYoutubeLive) localStorage.setItem('youtubeLiveUrl', urlYoutubeLive);
-  if (urlSlackWebhook) localStorage.setItem('slackWebhook', urlSlackWebhook);
-  if (urlAutoSlack) localStorage.setItem('autoSlack', urlAutoSlack === '1' ? '1' : '0');
-  let currentChannel = urlChannel || localStorage.getItem('overlayChannel') || 'scoreboard-overlay-v1';
-  let currentAblyKey = urlAblyKey || localStorage.getItem('ablyKey') || '';
-  let currentYoutubeLiveUrl = urlYoutubeLive || localStorage.getItem('youtubeLiveUrl') || '';
-  let currentSlackWebhook = urlSlackWebhook || localStorage.getItem('slackWebhook') || '';
+  const CHANNEL = 'scoreboard-overlay-v1';
 
   let state = {
-    nameA: 'LINCOLN', nameB: 'AWAY',
+    nameA: 'HOME', nameB: 'AWAY',
     colorA: '#c0392b', colorB: '#1a5fa8',
     scoreA: 0, scoreB: 0,
     half: '1H'
   };
 
-  const DEFAULTS = {
-    nameA: 'LINCOLN',
-    nameB: 'AWAY',
-    scoreA: 0,
-    scoreB: 0,
-    half: '1H'
-  };
+  // Ably setup
+  const ablyClient = new Ably.Realtime({ key: 'xVLyHw.8lLxqg:CTTH5bHbMjJGsPzA1v1Zog' });
+  const channel = ablyClient.channels.get(CHANNEL);
 
-  // Realtime setup with graceful fallback (local preview and localStorage still work)
-  let ablyClient = null;
-  let channel = null;
-  let isRealtimeReady = false;
-
-  function setStatus(mode, connected) {
-    const dot = document.getElementById('dot');
-    const label = document.getElementById('statusLabel');
-    if (connected) dot.classList.add('connected');
-    else dot.classList.remove('connected');
-    label.textContent = mode;
-  }
-
-  function initRealtime() {
-    isRealtimeReady = false;
-    channel = null;
-    if (ablyClient) {
-      try { ablyClient.close(); } catch (e) {}
-      ablyClient = null;
-    }
-
-    if (window.Ably && currentAblyKey) {
-      try {
-        ablyClient = new Ably.Realtime({ key: currentAblyKey });
-        channel = ablyClient.channels.get(currentChannel);
-        ablyClient.connection.on('connected', () => {
-          isRealtimeReady = true;
-          setStatus('Live', true);
-          publish(); // push current state on connect
-        });
-        ablyClient.connection.on('disconnected', () => {
-          isRealtimeReady = false;
-          setStatus('Reconnecting…', false);
-        });
-        ablyClient.connection.on('failed', () => {
-          isRealtimeReady = false;
-          setStatus('Local mode', false);
-        });
-        ablyClient.connection.on('suspended', () => {
-          isRealtimeReady = false;
-          setStatus('Reconnecting…', false);
-        });
-      } catch (e) {
-        setStatus('Local mode', false);
-      }
-    } else {
-      setStatus('Local mode (no key)', false);
-    }
-  }
-
-  function buildLiveUrl(kind) {
-    const file = kind === 'overlay' ? 'overlay.html' : 'controller.html';
-    const liveUrl = new URL(file, window.location.href);
-    liveUrl.searchParams.set('channel', currentChannel);
-    if (currentAblyKey) liveUrl.searchParams.set('ablyKey', currentAblyKey);
-    return liveUrl.toString();
-  }
-
-  function updateLiveHint() {
-    const overlayUrl = buildLiveUrl('overlay');
-    const controllerUrl = buildLiveUrl('controller');
-    document.getElementById('liveHint').textContent = 'Overlay: ' + overlayUrl + ' | Controller: ' + controllerUrl;
-  }
-
-  function setLiveStatus(text) {
-    document.getElementById('liveStatus').textContent = text;
-  }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  async function copyLiveUrl(kind) {
-    const url = buildLiveUrl(kind);
-    const ok = await copyText(url);
-    if (ok) setLiveStatus((kind === 'overlay' ? 'Overlay' : 'Controller') + ' URL copied');
-    else setLiveStatus('Could not copy URL on this browser.');
-  }
-
-  async function copyYoutubeLiveUrl() {
-    const youtubeInput = document.getElementById('youtubeLiveUrl').value.trim();
-    if (!youtubeInput) {
-      setLiveStatus('Add your YouTube live URL first.');
-      return;
-    }
-    currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
-    const ok = await copyText(currentYoutubeLiveUrl);
-    if (ok) setLiveStatus('YouTube live URL copied');
-    else setLiveStatus('Could not copy URL on this browser.');
-  }
-
-  async function sendYoutubeLiveToSlack() {
-    const youtubeInput = document.getElementById('youtubeLiveUrl').value.trim();
-    const webhookInput = (document.getElementById('slackWebhook').value || '').trim();
-    if (!youtubeInput) {
-      setLiveStatus('Add your YouTube live URL first.');
-      return;
-    }
-
-    currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
-
-    if (webhookInput) {
-      currentSlackWebhook = webhookInput;
-      localStorage.setItem('slackWebhook', currentSlackWebhook);
-    }
-
-    if (!currentSlackWebhook) {
-      setLiveStatus('Add Slack webhook in Other URL details first.');
-      return;
-    }
-
-    const payload = {
-      text: 'YouTube Live\n' + currentYoutubeLiveUrl
-    };
-
-    try {
-      await fetch(currentSlackWebhook, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
-      });
-      setLiveStatus('YouTube live link sent to Slack.');
-    } catch (e) {
-      setLiveStatus('Slack send failed. Check webhook URL/network.');
-    }
-  }
-
-  function openYoutubeLiveUrl() {
-    const youtubeInput = document.getElementById('youtubeLiveUrl').value.trim();
-    if (!youtubeInput) {
-      setLiveStatus('Add your YouTube live URL first.');
-      return;
-    }
-    currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
-    window.open(currentYoutubeLiveUrl, '_blank', 'noopener');
-  }
-
-  function openYoutubeLiveFinder() {
-    window.open('https://www.youtube.com/live_dashboard', '_blank', 'noopener');
-    setLiveStatus('Opened YouTube Live Dashboard in a new tab.');
-  }
-
-  function applyLiveSettings() {
-    const youtubeInput = document.getElementById('youtubeLiveUrl').value.trim();
-    const channelInput = document.getElementById('liveChannel').value.trim();
-    const keyInput = document.getElementById('liveAblyKey').value.trim();
-    const webhookInput = (document.getElementById('slackWebhook').value || '').trim();
-    const autoSlack = document.getElementById('autoSlack').checked;
-    if (!channelInput) {
-      setLiveStatus('Channel is required.');
-      return;
-    }
-    currentYoutubeLiveUrl = youtubeInput;
-    currentChannel = channelInput;
-    currentAblyKey = keyInput;
-    currentSlackWebhook = webhookInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
-    localStorage.setItem('overlayChannel', currentChannel);
-    localStorage.setItem('ablyKey', currentAblyKey);
-    localStorage.setItem('slackWebhook', currentSlackWebhook);
-    localStorage.setItem('autoSlack', autoSlack ? '1' : '0');
-    initRealtime();
-    updateLiveHint();
-    publish();
-    setLiveStatus('Live settings applied.');
-    if (autoSlack) sendSlackUpdate();
-  }
-
-  async function sendSlackUpdate() {
-    const webhookInput = (document.getElementById('slackWebhook').value || '').trim();
-    if (webhookInput) {
-      currentSlackWebhook = webhookInput;
-      localStorage.setItem('slackWebhook', currentSlackWebhook);
-    }
-    if (!currentSlackWebhook) {
-      setLiveStatus('Add a Slack webhook URL first.');
-      return;
-    }
-
-    const overlayUrl = buildLiveUrl('overlay');
-    const controllerUrl = buildLiveUrl('controller');
-    const youtubeLine = currentYoutubeLiveUrl ? ('YouTube Live: ' + currentYoutubeLiveUrl + '\n') : 'YouTube Live: (not set)\n';
-    const payload = {
-      text: 'Live broadcast links\n' + youtubeLine + 'Channel: ' + currentChannel + '\nOverlay: ' + overlayUrl + '\nController: ' + controllerUrl
-    };
-
-    try {
-      await fetch(currentSlackWebhook, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
-      });
-      setLiveStatus('Slack webhook request sent.');
-    } catch (e) {
-      setLiveStatus('Slack send failed. Check webhook URL/network.');
-    }
-  }
+  ablyClient.connection.on('connected', () => {
+    document.getElementById('dot').classList.add('connected');
+    document.getElementById('statusLabel').textContent = 'Live';
+    publish(); // push current state on connect
+  });
+  ablyClient.connection.on('disconnected', () => {
+    document.getElementById('dot').classList.remove('connected');
+    document.getElementById('statusLabel').textContent = 'Reconnecting…';
+  });
 
   function publish() {
-    if (isRealtimeReady && channel) {
-      channel.publish('update', { ...state });
-    }
-    try { localStorage.setItem('scoreState', JSON.stringify(state)); } catch(e) {}
+    channel.publish('update', { ...state });
+    try { safeStorageSet('scoreState', JSON.stringify(state)); } catch(e) {}
     updatePreview();
   }
 
@@ -774,42 +397,13 @@
     publish();
   }
 
-  function requestResetScores() {
-    document.getElementById('resetWarning').classList.add('show');
-    setLiveStatus('Confirm reset action below.');
-  }
-
-  function cancelResetScores() {
-    document.getElementById('resetWarning').classList.remove('show');
-    setLiveStatus('Reset cancelled.');
-  }
-
-  function confirmResetScores() {
-    state.nameA = DEFAULTS.nameA;
-    state.nameB = DEFAULTS.nameB;
-    state.scoreA = DEFAULTS.scoreA;
-    state.scoreB = DEFAULTS.scoreB;
-    state.half = DEFAULTS.half;
-
-    document.getElementById('nameA').value = DEFAULTS.nameA;
-    document.getElementById('nameB').value = DEFAULTS.nameB;
-    document.getElementById('scoreA').textContent = String(DEFAULTS.scoreA);
-    document.getElementById('scoreB').textContent = String(DEFAULTS.scoreB);
-    ['h1H','h2H','hHT','hFT'].forEach(id => document.getElementById(id).classList.remove('active'));
-    document.getElementById('h1H').classList.add('active');
-
-    document.getElementById('resetWarning').classList.remove('show');
-    setLiveStatus('Scoreboard reset to defaults.');
+  function resetScores() {
+    state.scoreA = 0; state.scoreB = 0;
+    document.getElementById('scoreA').textContent = '0';
+    document.getElementById('scoreB').textContent = '0';
     publish();
   }
 
-  document.getElementById('youtubeLiveUrl').value = currentYoutubeLiveUrl;
-  document.getElementById('liveChannel').value = currentChannel;
-  document.getElementById('liveAblyKey').value = currentAblyKey;
-  document.getElementById('slackWebhook').value = currentSlackWebhook;
-  document.getElementById('autoSlack').checked = (localStorage.getItem('autoSlack') || '0') === '1';
-  initRealtime();
-  updateLiveHint();
   updatePreview();
 </script>
 </body>
