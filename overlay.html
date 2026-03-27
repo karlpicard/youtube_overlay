@@ -106,7 +106,7 @@
 <body>
 <div class="scorebar">
   <div class="team-block team-a-block">
-    <span class="team-name" id="nameA">HOME</span>
+    <span class="team-name" id="nameA">LINCOLN</span>
   </div>
   <div class="score-center">
     <div class="score-box" id="scoreA" style="background:#c0392b;">0</div>
@@ -119,7 +119,13 @@
 </div>
 
 <script>
-  const CHANNEL = 'scoreboard-overlay-v1';
+  const params = new URLSearchParams(window.location.search);
+  const urlChannel = params.get('channel');
+  const urlAblyKey = params.get('ablyKey');
+  if (urlChannel) localStorage.setItem('overlayChannel', urlChannel);
+  if (urlAblyKey) localStorage.setItem('ablyKey', urlAblyKey);
+  const CHANNEL = urlChannel || localStorage.getItem('overlayChannel') || 'scoreboard-overlay-v1';
+  const ABLY_KEY = urlAblyKey || localStorage.getItem('ablyKey') || '';
 
   function applyState(state) {
     if (!state) return;
@@ -140,9 +146,15 @@
     if (state.half !== undefined) document.getElementById('half').textContent = state.half;
   }
 
-  const ablyClient = new Ably.Realtime({ key: 'xVLyHw.8lLxqg:CTTH5bHbMjJGsPzA1v1Zog' });
-  const channel = ablyClient.channels.get(CHANNEL);
-  channel.subscribe('update', msg => applyState(msg.data));
+  if (window.Ably && ABLY_KEY) {
+    try {
+      const ablyClient = new Ably.Realtime({ key: ABLY_KEY });
+      const channel = ablyClient.channels.get(CHANNEL);
+      channel.subscribe('update', msg => applyState(msg.data));
+    } catch (e) {
+      // Fall back to localStorage polling below.
+    }
+  }
 
   setInterval(() => {
     try {
