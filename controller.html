@@ -327,23 +327,48 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     background: #14142a;
-    padding: 8px;
+    overflow: hidden;
   }
 
   .live-details summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     cursor: pointer;
-    color: #c8c8e0;
+    color: #e5e9ff;
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     list-style: none;
+    padding: 11px 12px;
+    background: #1b1b35;
+    border-bottom: 1px solid transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .live-details summary::after {
+    content: 'Tap to expand \25BE';
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: #9fb1ff;
+  }
+
+  .live-details[open] summary {
+    border-bottom-color: var(--border);
+    background: #212142;
+  }
+
+  .live-details[open] summary::after {
+    content: 'Tap to collapse \25B4';
   }
 
   .live-details summary::-webkit-details-marker { display: none; }
 
   .live-details-body {
-    margin-top: 10px;
+    padding: 10px;
     display: grid;
     gap: 8px;
   }
@@ -427,7 +452,7 @@
     <button class="live-btn" onclick="openYoutubeLiveFinder()">Find Active Stream on YouTube</button>
 
     <details class="live-details">
-      <summary>Other URL details</summary>
+      <summary>Other URL details and live sync settings</summary>
       <div class="live-details-body">
         <input class="live-input" id="liveChannel" type="text" placeholder="Live channel (example: match-001)" />
         <input class="live-input" id="liveAblyKey" type="text" placeholder="Ably key for cross-device sync" />
