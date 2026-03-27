@@ -1,5 +1,3 @@
-const Ably = require('ably');
-
 function badRequest(message) {
   return {
     statusCode: 400,
@@ -82,17 +80,37 @@ exports.handler = async function handler(event) {
     : { [channel]: ['publish', 'subscribe', 'presence'] };
 
   try {
-    const rest = new Ably.Rest({ key: `${keyName}:${keySecret}` });
-    const tokenRequest = await new Promise((resolve, reject) => {
-      rest.auth.createTokenRequest({
+    const basic = Buffer.from(`${keyName}:${keySecret}`).toString('base64');
+    const response = await fetch(`https://rest.ably.io/keys/${encodeURIComponent(keyName)}/requestToken`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         clientId,
         ttl,
         capability: JSON.stringify(capability)
-      }, (err, tokenReq) => {
-        if (err) reject(err);
-        else resolve(tokenReq);
-      });
+      })
     });
+
+    const bodyText = await response.text();
+    if (!response.ok) {
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+          error: 'Ably requestToken failed',
+          details: bodyText || response.statusText
+        })
+      };
+    }
+
+    const tokenRequest = bodyText ? JSON.parse(bodyText) : {};
 
     return {
       statusCode: 200,
