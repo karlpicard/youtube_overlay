@@ -52,6 +52,19 @@
   .status-dot.connected { background: #2ecc71; }
   .status-label { font-size: 12px; color: var(--muted); }
 
+  .mode-banner {
+    margin: 12px 16px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 205, 80, 0.45);
+    background: rgba(120, 90, 10, 0.28);
+    color: #ffe7a1;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .mode-banner[hidden] { display: none; }
+
   /* Mini scorebar preview */
   .preview {
     margin: 16px 16px 0;
@@ -384,6 +397,8 @@
   </div>
 </header>
 
+<div class="mode-banner" id="modeBanner" hidden></div>
+
 <!-- Mini preview -->
 <div class="preview">
   <div class="prev-team prev-team-a"><span id="prevNameA">LINCOLN</span></div>
@@ -489,20 +504,35 @@
 
 <script>
   const params = new URLSearchParams(window.location.search);
-  const urlChannel = params.get('channel');
-  const urlAblyKey = params.get('ablyKey');
-  const urlYoutubeLive = params.get('youtubeLiveUrl');
-  const urlSlackWebhook = params.get('slackWebhook');
+  const rawSearch = window.location.search || '';
+  const rawAblyMatch = rawSearch.match(/[?&]ablyKey=([^&]+)/i);
+  const decodedAblyFromSearch = rawAblyMatch ? decodeURIComponent(rawAblyMatch[1].replace(/\+/g, '%20')) : '';
+
+  const urlChannel = (params.get('channel') || '').trim();
+  const urlAblyKey = ((params.get('ablyKey') || decodedAblyFromSearch || '') + '').trim();
+  const urlYoutubeLive = (params.get('youtubeLiveUrl') || '').trim();
+  const urlSlackWebhook = (params.get('slackWebhook') || '').trim();
   const urlAutoSlack = params.get('autoSlack');
-  if (urlChannel) localStorage.setItem('overlayChannel', urlChannel);
-  if (urlAblyKey) localStorage.setItem('ablyKey', urlAblyKey);
-  if (urlYoutubeLive) localStorage.setItem('youtubeLiveUrl', urlYoutubeLive);
-  if (urlSlackWebhook) localStorage.setItem('slackWebhook', urlSlackWebhook);
-  if (urlAutoSlack) localStorage.setItem('autoSlack', urlAutoSlack === '1' ? '1' : '0');
-  let currentChannel = urlChannel || localStorage.getItem('overlayChannel') || 'scoreboard-overlay-v1';
-  let currentAblyKey = urlAblyKey || localStorage.getItem('ablyKey') || '';
-  let currentYoutubeLiveUrl = urlYoutubeLive || localStorage.getItem('youtubeLiveUrl') || '';
-  let currentSlackWebhook = urlSlackWebhook || localStorage.getItem('slackWebhook') || '';
+
+  function safeStorageGet(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+  }
+
+  function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  }
+
+  if (urlChannel) safeStorageSet('overlayChannel', urlChannel);
+  if (urlAblyKey) safeStorageSet('ablyKey', urlAblyKey);
+  if (urlYoutubeLive) safeStorageSet('youtubeLiveUrl', urlYoutubeLive);
+  if (urlSlackWebhook) safeStorageSet('slackWebhook', urlSlackWebhook);
+  if (urlAutoSlack) safeStorageSet('autoSlack', urlAutoSlack === '1' ? '1' : '0');
+
+  let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
+  let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
+  let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
+  let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || '';
+  let keySource = urlAblyKey ? 'URL' : (safeStorageGet('ablyKey') ? 'Saved' : 'None');
 
   let state = {
     nameA: 'LINCOLN', nameB: 'AWAY',
@@ -530,6 +560,16 @@
     if (connected) dot.classList.add('connected');
     else dot.classList.remove('connected');
     label.textContent = mode;
+
+    const banner = document.getElementById('modeBanner');
+    if (connected) {
+      banner.hidden = true;
+    } else if (mode.startsWith('Local mode')) {
+      banner.hidden = false;
+      banner.textContent = 'Warning: running in local mode. Cross-device sync is OFF until a valid Ably key is applied.';
+    } else {
+      banner.hidden = true;
+    }
   }
 
   function initRealtime() {
@@ -563,9 +603,11 @@
         });
       } catch (e) {
         setStatus('Local mode', false);
+        setLiveStatus('Ably init failed. Check key format and network.');
       }
     } else {
       setStatus('Local mode (no key)', false);
+      setLiveStatus('No Ably key detected. Paste key in Other URL details and tap Apply Live Settings.');
     }
   }
 
@@ -610,7 +652,7 @@
       return;
     }
     currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
+    safeStorageSet('youtubeLiveUrl', currentYoutubeLiveUrl);
     const ok = await copyText(currentYoutubeLiveUrl);
     if (ok) setLiveStatus('YouTube live URL copied');
     else setLiveStatus('Could not copy URL on this browser.');
@@ -625,11 +667,11 @@
     }
 
     currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
+    safeStorageSet('youtubeLiveUrl', currentYoutubeLiveUrl);
 
     if (webhookInput) {
       currentSlackWebhook = webhookInput;
-      localStorage.setItem('slackWebhook', currentSlackWebhook);
+      safeStorageSet('slackWebhook', currentSlackWebhook);
     }
 
     if (!currentSlackWebhook) {
@@ -660,7 +702,7 @@
       return;
     }
     currentYoutubeLiveUrl = youtubeInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
+    safeStorageSet('youtubeLiveUrl', currentYoutubeLiveUrl);
     window.open(currentYoutubeLiveUrl, '_blank', 'noopener');
   }
 
@@ -679,19 +721,24 @@
       setLiveStatus('Channel is required.');
       return;
     }
+    if (!keyInput) {
+      setLiveStatus('Ably key is required for live sync.');
+      return;
+    }
     currentYoutubeLiveUrl = youtubeInput;
     currentChannel = channelInput;
     currentAblyKey = keyInput;
+    keySource = 'Manual';
     currentSlackWebhook = webhookInput;
-    localStorage.setItem('youtubeLiveUrl', currentYoutubeLiveUrl);
-    localStorage.setItem('overlayChannel', currentChannel);
-    localStorage.setItem('ablyKey', currentAblyKey);
-    localStorage.setItem('slackWebhook', currentSlackWebhook);
-    localStorage.setItem('autoSlack', autoSlack ? '1' : '0');
+    safeStorageSet('youtubeLiveUrl', currentYoutubeLiveUrl);
+    safeStorageSet('overlayChannel', currentChannel);
+    safeStorageSet('ablyKey', currentAblyKey);
+    safeStorageSet('slackWebhook', currentSlackWebhook);
+    safeStorageSet('autoSlack', autoSlack ? '1' : '0');
     initRealtime();
     updateLiveHint();
     publish();
-    setLiveStatus('Live settings applied.');
+    setLiveStatus('Live settings applied. Key source: ' + keySource + '.');
     if (autoSlack) sendSlackUpdate();
   }
 
@@ -699,7 +746,7 @@
     const webhookInput = (document.getElementById('slackWebhook').value || '').trim();
     if (webhookInput) {
       currentSlackWebhook = webhookInput;
-      localStorage.setItem('slackWebhook', currentSlackWebhook);
+      safeStorageSet('slackWebhook', currentSlackWebhook);
     }
     if (!currentSlackWebhook) {
       setLiveStatus('Add a Slack webhook URL first.');
@@ -729,7 +776,7 @@
     if (isRealtimeReady && channel) {
       channel.publish('update', { ...state });
     }
-    try { localStorage.setItem('scoreState', JSON.stringify(state)); } catch(e) {}
+    safeStorageSet('scoreState', JSON.stringify(state));
     updatePreview();
   }
 
@@ -807,7 +854,13 @@
   document.getElementById('liveChannel').value = currentChannel;
   document.getElementById('liveAblyKey').value = currentAblyKey;
   document.getElementById('slackWebhook').value = currentSlackWebhook;
-  document.getElementById('autoSlack').checked = (localStorage.getItem('autoSlack') || '0') === '1';
+  document.getElementById('autoSlack').checked = (safeStorageGet('autoSlack') || '0') === '1';
+
+  if (!currentAblyKey) {
+    setLiveStatus('Key source: ' + keySource + '. No key loaded yet.');
+  } else {
+    setLiveStatus('Key source: ' + keySource + '. Key loaded.');
+  }
   initRealtime();
   updateLiveHint();
   updatePreview();
