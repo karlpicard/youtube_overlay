@@ -121,3 +121,23 @@ If no valid realtime connection is available, the app falls back to local mode u
 - Ensure OBS Browser Source URL exactly matches your tested overlay URL (including query params).
 - Disable OBS source cache while testing updates.
 - If using local mode, OBS and controller must share browser storage context; realtime mode is recommended for OBS.
+
+## Game Day Preflight
+
+Run this 2-3 minute checklist before going live.
+
+1. Open `controller.html` and verify top-right status shows `Live` (green dot).
+2. Confirm `Live channel` and `Ably key` are set, then click `Apply Live Settings`.
+3. Click `Copy Overlay URL` and use that exact URL in OBS Browser Source.
+4. In OBS, temporarily disable Browser Source cache while validating updates.
+5. Press `+` on home and away once, confirm overlay updates in under 1 second.
+6. Set score back to correct values and confirm period (`1H/2H/HT/FT`).
+7. Verify team names and colors are correct for the match.
+8. If using YouTube/Slack links, send one test update and confirm it arrives.
+9. Keep controller tab active on operator device and avoid closing/reloading mid-match.
+
+If preflight fails:
+
+- `Local mode (no key)`: apply key/channel again.
+- `Local mode`: key present but realtime failed; verify key/app, network, and blockers.
+- Overlay mismatch in OBS: paste the controller-generated overlay URL again.
