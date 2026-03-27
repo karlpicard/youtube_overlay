@@ -1,8 +1,14 @@
 # TODO - youtube_overlay
 
+## Event Day Priority (Immediate)
+
+- [ ] Stabilize Netlify token-auth function (`/.netlify/functions/ably-token`) and resolve Ably `40101` MAC mismatch.
+- [ ] Keep API-key mode as tomorrow fallback and document exact operator steps (apply key, copy overlay URL, verify Live).
+- [ ] Add a quick pre-game auth check step: hit token endpoint and confirm JSON token response before kickoff.
+
 ## High Priority
 
-- [x] Replace client-side Ably key usage with token auth or a server-issued capability token.
+- [ ] Replace client-side Ably key usage with token auth or a server-issued capability token.
 - [ ] Add in-app diagnostics panel (channel, realtime status, last publish time, last receive time).
 - [x] Add a visible warning banner when running in local mode so operators know cross-device sync is off.
 - [x] Add input validation/limits for team names and score bounds, including paste edge cases.
