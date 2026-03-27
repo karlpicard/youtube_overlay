@@ -67,7 +67,7 @@ exports.handler = async function handler(event) {
     : { [channel]: ['publish', 'subscribe', 'presence'] };
 
   try {
-    const rest = new Ably.Rest(apiKey);
+    const rest = new Ably.Rest({ key: apiKey });
     const tokenRequest = await new Promise((resolve, reject) => {
       rest.auth.createTokenRequest({
         clientId,
