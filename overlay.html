@@ -126,11 +126,25 @@
   const params = new URLSearchParams(window.location.search);
   const urlChannel = params.get('channel');
   const urlAblyKey = params.get('ablyKey');
+  const urlAblyAuthUrl = params.get('ablyAuthUrl');
   if (urlChannel) localStorage.setItem('overlayChannel', urlChannel);
   if (urlAblyKey) localStorage.setItem('ablyKey', urlAblyKey);
+  if (urlAblyAuthUrl) localStorage.setItem('ablyAuthUrl', urlAblyAuthUrl);
   const CHANNEL = urlChannel || localStorage.getItem('overlayChannel') || 'scoreboard-overlay-v1';
   const ABLY_KEY = urlAblyKey || localStorage.getItem('ablyKey') || '';
+  const ABLY_AUTH_URL = urlAblyAuthUrl || localStorage.getItem('ablyAuthUrl') || '/.netlify/functions/ably-token';
   const TEAM_NAME_MAX = 16;
+
+  function buildOverlayAuthUrl() {
+    try {
+      const authUrl = new URL(ABLY_AUTH_URL, window.location.href);
+      authUrl.searchParams.set('channel', CHANNEL);
+      authUrl.searchParams.set('role', 'subscriber');
+      return authUrl.toString();
+    } catch (e) {
+      return '';
+    }
+  }
 
   function normalizeTeamName(value) {
     return String(value || '').trim().slice(0, TEAM_NAME_MAX);
@@ -227,9 +241,14 @@
     el.style.color = dark ? '#ffffff' : '#111111';
   }
 
-  if (window.Ably && ABLY_KEY) {
+  const overlayAuthUrl = buildOverlayAuthUrl();
+  const realtimeOptions = ABLY_KEY
+    ? { key: ABLY_KEY }
+    : (overlayAuthUrl ? { authUrl: overlayAuthUrl, authMethod: 'GET' } : null);
+
+  if (window.Ably && realtimeOptions) {
     try {
-      const ablyClient = new Ably.Realtime({ key: ABLY_KEY });
+      const ablyClient = new Ably.Realtime(realtimeOptions);
       const channel = ablyClient.channels.get(CHANNEL);
       channel.subscribe('update', msg => applyState(msg.data));
     } catch (e) {

@@ -7,7 +7,7 @@ Simple livestream score overlay with a controller UI and a broadcast overlay vie
 Use this before every match.
 
 1. Open `controller.html` and confirm status is `Live`.
-2. Confirm channel + key, then click `Apply Live Settings`.
+2. Confirm channel + auth, then click `Apply Live Settings`.
 3. Click `Copy Overlay URL` and paste that exact URL in OBS Browser Source.
 4. Tap `+` once for each team and confirm overlay updates in under 1 second.
 5. Return score/period to correct pre-game values.
@@ -15,8 +15,8 @@ Use this before every match.
 
 If anything fails:
 
-- `Local mode (no key)`: key not loaded, re-apply channel/key.
-- `Local mode`: key loaded but connection/auth failed.
+- `Local mode (no key)`: no key and token auth not available.
+- `Local mode`: connection/auth failed.
 - OBS mismatch: recopy overlay URL from controller and re-paste in OBS.
 
 ## What It Does
@@ -32,7 +32,7 @@ If anything fails:
 - `controller.html` is the operator interface.
 - `overlay.html` is the transparent display you place in Streamlabs as a Browser Source.
 - Both pages subscribe/publish on the same channel.
-- If you pass `channel` and `ablyKey` in the URL, both pages persist those values locally for reuse after refresh.
+- If you pass `channel`, `ablyKey`, or `ablyAuthUrl` in the URL, both pages persist those values locally for reuse after refresh.
 - Controller includes a Live Links panel to generate/copy URLs and post them to Slack via webhook.
 
 ## Files
@@ -60,12 +60,20 @@ This mode can work without Ably because both pages can share browser `localStora
 ### Option 2: Two Devices (recommended for live use)
 
 1. Host both files on a public URL (Netlify Drop works well).
-2. Create an Ably app/key.
-3. Open controller with params on device A:
-	`https://your-site/controller.html?channel=match-001&ablyKey=YOUR_KEY`
-4. Open overlay with the same params on device B/Streamlabs:
-	`https://your-site/overlay.html?channel=match-001&ablyKey=YOUR_KEY`
-5. Verify controller status shows `Live`.
+2. Create an Ably app.
+3. Preferred (secure): configure token auth with Netlify Function.
+4. Open controller with params on device A:
+	`https://your-site/controller.html?channel=match-001`
+5. Open overlay with matching channel on device B/Streamlabs:
+	`https://your-site/overlay.html?channel=match-001`
+6. Verify controller status shows `Live`.
+
+### Option 2B: Netlify Token Auth Setup (recommended)
+
+1. In Netlify Site Settings, add environment variable `ABLY_API_KEY` with your Ably API key.
+2. Deploy this repo so `netlify/functions/ably-token.js` is available.
+3. Use controller/overlay URLs with `channel` only (no client-side API key required).
+4. Optional: provide custom token endpoint with `ablyAuthUrl` query param.
 
 ### Option 4: Share Live URLs to Slack
 
@@ -91,6 +99,9 @@ If you want a default webhook value without storing it in the repo:
 	`window.SCOREPAD_DEFAULTS = { slackWebhook: "https://hooks.slack.com/services/..." };`
 3. Keep `local-config.js` local only. It is gitignored.
 
+You can also set a default token endpoint there:
+	`window.SCOREPAD_DEFAULTS = { ablyAuthUrl: "https://your-site/.netlify/functions/ably-token" };`
+
 Load order in controller is:
 
 1. URL param `slackWebhook`
@@ -110,14 +121,15 @@ Load order in controller is:
 Both pages support the same query params:
 
 - `channel`: Realtime channel name (default: `scoreboard-overlay-v1`)
-- `ablyKey`: Ably API key for realtime sync
+- `ablyKey`: Ably API key for realtime sync (legacy/fallback)
+- `ablyAuthUrl`: Token auth endpoint URL (default: `/.netlify/functions/ably-token`)
 - `youtubeLiveUrl`: Optional YouTube viewer link saved in controller for sharing
 
-Important: cross-device sync requires a valid `ablyKey` you control. If no key is set, the app runs in local mode only.
+Important: for production, prefer token auth (`ablyAuthUrl`) and keep `ABLY_API_KEY` only on the server/Netlify env vars.
 
 Example:
 
-`overlay.html?channel=my-match-1&ablyKey=YOUR_ABLY_KEY`
+`overlay.html?channel=my-match-1`
 
 Use the same query string on both `controller.html` and `overlay.html`.
 
@@ -127,9 +139,9 @@ If no valid realtime connection is available, the app falls back to local mode u
 
 ### Controller says Local mode (no key)
 
-- No `ablyKey` is configured.
+- No `ablyKey` is configured and token endpoint is unavailable.
 - This is expected for same-browser local testing.
-- For cross-device sync, open both pages with `?channel=...&ablyKey=...`.
+- For cross-device sync, use token auth (`ABLY_API_KEY` in Netlify env) or provide `?ablyKey=...`.
 
 ### Controller says Reconnecting
 
@@ -145,7 +157,8 @@ If no valid realtime connection is available, the app falls back to local mode u
 ### Realtime not connecting
 
 - Check internet access and ad/script blockers (they can block the Ably CDN).
-- Verify `ablyKey` is valid and has permission to publish/subscribe.
+- Verify token endpoint is reachable and `ABLY_API_KEY` is set in Netlify.
+- If using legacy key mode, verify `ablyKey` is valid and has publish/subscribe permission.
 - Open browser devtools and check for network or auth errors.
 
 ### Works in browser but not in Streamlabs
@@ -177,7 +190,7 @@ Run this 2-3 minute checklist before going live.
 If preflight fails:
 
 - `Local mode (no key)`: apply key/channel again.
-- `Local mode`: key present but realtime failed; verify key/app, network, and blockers.
+- `Local mode`: realtime failed; verify Netlify token function, ABLY_API_KEY, network, and blockers.
 - Overlay mismatch in Streamlabs: paste the controller-generated overlay URL again.
 
 ## Manual Smoke Checklist (iPhone + Streamlabs)

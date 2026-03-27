@@ -627,11 +627,13 @@
 
   const urlChannel = (params.get('channel') || '').trim();
   const urlAblyKey = ((params.get('ablyKey') || decodedAblyFromSearch || '') + '').trim();
+  const urlAblyAuthUrl = (params.get('ablyAuthUrl') || '').trim();
   const urlYoutubeLive = (params.get('youtubeLiveUrl') || '').trim();
   const urlSlackWebhook = (params.get('slackWebhook') || '').trim();
   const urlAutoSlack = params.get('autoSlack');
   const runtimeDefaults = (window.SCOREPAD_DEFAULTS && typeof window.SCOREPAD_DEFAULTS === 'object') ? window.SCOREPAD_DEFAULTS : {};
   const runtimeDefaultSlackWebhook = String(runtimeDefaults.slackWebhook || '').trim();
+  const runtimeDefaultAblyAuthUrl = String(runtimeDefaults.ablyAuthUrl || '').trim();
 
   function safeStorageGet(key) {
     try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
@@ -643,12 +645,14 @@
 
   if (urlChannel) safeStorageSet('overlayChannel', urlChannel);
   if (urlAblyKey) safeStorageSet('ablyKey', urlAblyKey);
+  if (urlAblyAuthUrl) safeStorageSet('ablyAuthUrl', urlAblyAuthUrl);
   if (urlYoutubeLive) safeStorageSet('youtubeLiveUrl', urlYoutubeLive);
   if (urlSlackWebhook) safeStorageSet('slackWebhook', urlSlackWebhook);
   if (urlAutoSlack) safeStorageSet('autoSlack', urlAutoSlack === '1' ? '1' : '0');
 
   let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
   let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
+  let currentAblyAuthUrl = urlAblyAuthUrl || safeStorageGet('ablyAuthUrl') || runtimeDefaultAblyAuthUrl || '/.netlify/functions/ably-token';
   let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
   let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || runtimeDefaultSlackWebhook || '';
   let keySource = urlAblyKey ? 'URL' : (safeStorageGet('ablyKey') ? 'Saved' : 'None');
@@ -782,9 +786,14 @@
       return;
     }
 
-    if (currentAblyKey) {
+    const tokenAuthUrl = buildTokenAuthUrl('publisher');
+    const authOptions = currentAblyKey
+      ? { key: currentAblyKey }
+      : (tokenAuthUrl ? { authUrl: tokenAuthUrl, authMethod: 'GET' } : null);
+
+    if (authOptions) {
       try {
-        ablyClient = new Ably.Realtime({ key: currentAblyKey });
+        ablyClient = new Ably.Realtime(authOptions);
         channel = ablyClient.channels.get(currentChannel);
         ablyClient.connection.on('connected', () => {
           isRealtimeReady = true;
@@ -805,11 +814,23 @@
         });
       } catch (e) {
         setStatus('Local mode', false);
-        setLiveStatus('Ably init failed. Check key format and network.');
+        if (currentAblyKey) setLiveStatus('Ably init failed. Check key format and network.');
+        else setLiveStatus('Token auth init failed. Verify Netlify function and ABLY_API_KEY env var.');
       }
     } else {
       setStatus('Local mode (no key)', false);
       setLiveStatus('No Ably key detected. Paste key in Other URL details and tap Apply Live Settings.');
+    }
+  }
+
+  function buildTokenAuthUrl(role) {
+    try {
+      const authUrl = new URL(currentAblyAuthUrl || '/.netlify/functions/ably-token', window.location.href);
+      authUrl.searchParams.set('channel', currentChannel);
+      authUrl.searchParams.set('role', role || 'publisher');
+      return authUrl.toString();
+    } catch (e) {
+      return '';
     }
   }
 
@@ -818,6 +839,7 @@
     const liveUrl = new URL(file, window.location.href);
     liveUrl.searchParams.set('channel', currentChannel);
     if (currentAblyKey) liveUrl.searchParams.set('ablyKey', currentAblyKey);
+    else if (currentAblyAuthUrl && currentAblyAuthUrl !== '/.netlify/functions/ably-token') liveUrl.searchParams.set('ablyAuthUrl', currentAblyAuthUrl);
     return liveUrl.toString();
   }
 
@@ -923,18 +945,20 @@
       setLiveStatus('Channel is required.');
       return;
     }
-    if (!keyInput) {
-      setLiveStatus('Ably key is required for live sync.');
+    const hasTokenAuthEndpoint = Boolean((currentAblyAuthUrl || '').trim());
+    if (!keyInput && !hasTokenAuthEndpoint) {
+      setLiveStatus('Set an Ably key or configure a token auth endpoint for live sync.');
       return;
     }
     currentYoutubeLiveUrl = youtubeInput;
     currentChannel = channelInput;
     currentAblyKey = keyInput;
-    keySource = 'Manual';
+    keySource = keyInput ? 'Manual' : 'TokenAuth';
     currentSlackWebhook = webhookInput;
     safeStorageSet('youtubeLiveUrl', currentYoutubeLiveUrl);
     safeStorageSet('overlayChannel', currentChannel);
     safeStorageSet('ablyKey', currentAblyKey);
+    safeStorageSet('ablyAuthUrl', currentAblyAuthUrl);
     safeStorageSet('slackWebhook', currentSlackWebhook);
     safeStorageSet('autoSlack', autoSlack ? '1' : '0');
     initRealtime();
@@ -1066,7 +1090,7 @@
   document.getElementById('autoSlack').checked = (safeStorageGet('autoSlack') || '0') === '1';
 
   if (!currentAblyKey) {
-    setLiveStatus('Key source: ' + keySource + '. No key loaded yet.');
+    setLiveStatus('Auth mode: token endpoint (' + currentAblyAuthUrl + ').');
   } else {
     setLiveStatus('Key source: ' + keySource + '. Key loaded.');
   }
