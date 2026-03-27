@@ -37,8 +37,8 @@ exports.handler = async function handler(event) {
     };
   }
 
-  const apiKey = process.env.ABLY_API_KEY;
-  if (!apiKey) {
+  const apiKeyRaw = String(process.env.ABLY_API_KEY || '').trim();
+  if (!apiKeyRaw) {
     return {
       statusCode: 500,
       headers: {
@@ -47,6 +47,21 @@ exports.handler = async function handler(event) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ error: 'ABLY_API_KEY env var is not set' })
+    };
+  }
+
+  const keyParts = apiKeyRaw.split(':');
+  const keyName = keyParts[0] || '';
+  const keySecret = keyParts[1] || '';
+  if (keyParts.length !== 2 || !keyName || !keySecret) {
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ error: 'ABLY_API_KEY must use keyName:keySecret format' })
     };
   }
 
@@ -67,7 +82,7 @@ exports.handler = async function handler(event) {
     : { [channel]: ['publish', 'subscribe', 'presence'] };
 
   try {
-    const rest = new Ably.Rest({ key: apiKey });
+    const rest = new Ably.Rest({ keyName, keySecret });
     const tokenRequest = await new Promise((resolve, reject) => {
       rest.auth.createTokenRequest({
         clientId,
