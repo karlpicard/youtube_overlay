@@ -1,4 +1,4 @@
-const Ably = require('ably/promises');
+const Ably = require('ably');
 
 function badRequest(message) {
   return {
@@ -68,10 +68,15 @@ exports.handler = async function handler(event) {
 
   try {
     const rest = new Ably.Rest(apiKey);
-    const tokenRequest = await rest.auth.createTokenRequest({
-      clientId,
-      ttl,
-      capability: JSON.stringify(capability)
+    const tokenRequest = await new Promise((resolve, reject) => {
+      rest.auth.createTokenRequest({
+        clientId,
+        ttl,
+        capability: JSON.stringify(capability)
+      }, (err, tokenReq) => {
+        if (err) reject(err);
+        else resolve(tokenReq);
+      });
     });
 
     return {
