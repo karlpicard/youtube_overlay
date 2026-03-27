@@ -385,6 +385,37 @@
     display: grid;
     gap: 8px;
   }
+
+  .quick-sheet {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #151531;
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .quick-sheet-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9fb1ff;
+  }
+
+  .quick-sheet ol {
+    margin: 0;
+    padding-left: 18px;
+    color: #d8dcf7;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .quick-sheet-note {
+    color: #b6bddf;
+    font-size: 12px;
+    line-height: 1.35;
+  }
 </style>
 </head>
 <body>
@@ -499,6 +530,18 @@
       <button class="live-btn" onclick="cancelResetScores()">Cancel</button>
         <button class="live-btn" onclick="confirmResetScores()">Yes, reset scoreboard</button>
     </div>
+  </div>
+
+  <div class="quick-sheet">
+    <div class="quick-sheet-title">Game Day Quick Sheet</div>
+    <ol>
+      <li>Verify status is Live before kickoff.</li>
+      <li>Apply channel + key and copy overlay URL into OBS.</li>
+      <li>Tap + once for each team and confirm overlay updates.</li>
+      <li>Return score/period to correct pre-game values.</li>
+      <li>Keep this controller tab open for the full match.</li>
+    </ol>
+    <div class="quick-sheet-note">If status is Local mode, re-apply key/channel and check network or blockers.</div>
   </div>
 </div>
 

@@ -2,6 +2,23 @@
 
 Simple livestream score overlay with a controller UI and a broadcast overlay view.
 
+## Operator Quick Sheet
+
+Use this before every match.
+
+1. Open `controller.html` and confirm status is `Live`.
+2. Confirm channel + key, then click `Apply Live Settings`.
+3. Click `Copy Overlay URL` and paste that exact URL in OBS Browser Source.
+4. Tap `+` once for each team and confirm overlay updates in under 1 second.
+5. Return score/period to correct pre-game values.
+6. Keep controller open and avoid reload/close during the match.
+
+If anything fails:
+
+- `Local mode (no key)`: key not loaded, re-apply channel/key.
+- `Local mode`: key loaded but connection/auth failed.
+- OBS mismatch: recopy overlay URL from controller and re-paste in OBS.
+
 ## What It Does
 
 - Shows a thin, broadcast-style score bar at the bottom of video.
