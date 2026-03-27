@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Score Controller</title>
+<script src="https://cdn.jsdelivr.net/npm/ably@1/ably.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e0e1a;
+    --surface: #1a1a2e;
+    --surface2: #22223a;
+    --border: rgba(255,255,255,0.08);
+    --text: #ffffff;
+    --muted: #8888aa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Teko', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.06em;
+    color: #fff;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #e74c3c;
+    display: inline-block;
+    margin-right: 6px;
+    transition: background 0.3s;
+  }
+  .status-dot.connected { background: #2ecc71; }
+  .status-label { font-size: 12px; color: var(--muted); }
+
+  /* Mini scorebar preview */
+  .preview {
+    margin: 16px 16px 0;
+    background: #12122a;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    height: 44px;
+    font-family: 'Teko', sans-serif;
+  }
+  .prev-team {
+    flex: 1; display: flex; align-items: center; padding: 0 12px;
+    font-size: 20px; font-weight: 600; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .prev-team-a { justify-content: flex-end; }
+  .prev-team-b { justify-content: flex-start; }
+  .prev-center { display: flex; align-items: center; }
+  .prev-score {
+    width: 36px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 600; color: #fff;
+  }
+  .prev-half {
+    padding: 0 8px; font-size: 11px; color: #666;
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: #1e1e38;
+    display: flex; align-items: center;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  .main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Team cards */
+  .team-card {
+    background: var(--surface);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .team-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .team-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Teko', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+    padding: 0;
+  }
+  .team-name-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  .color-swatch {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .color-swatch input[type=color] {
+    position: absolute; inset: -4px;
+    width: calc(100% + 8px); height: calc(100% + 8px);
+    opacity: 0; cursor: pointer; border: none;
+  }
+
+  .color-strip {
+    height: 4px;
+    transition: background 0.2s;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .score-btn {
+    flex: 1;
+    height: 72px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 36px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s, color 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .score-btn:active { background: var(--surface2); color: #fff; }
+
+  .score-display {
+    flex: 0 0 80px;
+    text-align: center;
+    font-family: 'Teko', sans-serif;
+    font-size: 52px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 10px 0;
+  }
+
+  /* Half control */
+  .half-card {
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 14px;
+  }
+
+  .half-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+
+  .half-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .half-btn {
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .half-btn:active { background: #2a2a4a; }
+  .half-btn.active {
+    background: #2563eb22;
+    border-color: #2563eb88;
+    color: #60a5fa;
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid rgba(255,80,80,0.25);
+    border-radius: 10px;
+    color: #ff6b6b;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.15s;
+  }
+  .reset-btn:active { background: rgba(255,80,80,0.1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SCOREPAD</div>
+  <div>
+    <span class="status-dot" id="dot"></span>
+    <span class="status-label" id="statusLabel">Connecting…</span>
+  </div>
+</header>
+
+<!-- Mini preview -->
+<div class="preview">
+  <div class="prev-team prev-team-a"><span id="prevNameA">HOME</span></div>
+  <div class="prev-center">
+    <div class="prev-score" id="prevScoreA" style="background:#c0392b;">0</div>
+    <div class="prev-half" id="prevHalf">1H</div>
+    <div class="prev-score" id="prevScoreB" style="background:#1a5fa8;">0</div>
+  </div>
+  <div class="prev-team prev-team-b"><span id="prevNameB">AWAY</span></div>
+</div>
+
+<div class="main">
+  <!-- Team A -->
+  <div class="team-card">
+    <div class="team-card-header">
+      <input class="team-name-input" id="nameA" type="text" value="HOME" maxlength="12" placeholder="Team A" oninput="onNameChange('A')" />
+      <div class="color-swatch" id="swatchA" style="background:#c0392b;">
+        <input type="color" id="colorA" value="#c0392b" oninput="onColorChange('A')" />
+      </div>
+    </div>
+    <div class="color-strip" id="stripA" style="background:#c0392b;"></div>
+    <div class="score-row">
+      <button class="score-btn" ontouchstart="adj('A',-1)" onclick="adj('A',-1)">−</button>
+      <div class="score-display" id="scoreA">0</div>
+      <button class="score-btn" ontouchstart="adj('A',1)" onclick="adj('A',1)">+</button>
+    </div>
+  </div>
+
+  <!-- Team B -->
+  <div class="team-card">
+    <div class="team-card-header">
+      <input class="team-name-input" id="nameB" type="text" value="AWAY" maxlength="12" placeholder="Team B" oninput="onNameChange('B')" />
+      <div class="color-swatch" id="swatchB" style="background:#1a5fa8;">
+        <input type="color" id="colorB" value="#1a5fa8" oninput="onColorChange('B')" />
+      </div>
+    </div>
+    <div class="color-strip" id="stripB" style="background:#1a5fa8;"></div>
+    <div class="score-row">
+      <button class="score-btn" ontouchstart="adj('B',-1)" onclick="adj('B',-1)">−</button>
+      <div class="score-display" id="scoreB">0</div>
+      <button class="score-btn" ontouchstart="adj('B',1)" onclick="adj('B',1)">+</button>
+    </div>
+  </div>
+
+  <!-- Half -->
+  <div class="half-card">
+    <div class="half-label">Period</div>
+    <div class="half-grid">
+      <button class="half-btn active" id="h1H" onclick="setHalf('1H','h1H')">1st Half</button>
+      <button class="half-btn" id="h2H" onclick="setHalf('2H','h2H')">2nd Half</button>
+      <button class="half-btn" id="hHT" onclick="setHalf('HT','hHT')">Half Time</button>
+      <button class="half-btn" id="hFT" onclick="setHalf('FT','hFT')">Full Time</button>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetScores()">Reset scores</button>
+</div>
+
+<script>
+  const CHANNEL = 'scoreboard-overlay-v1';
+
+  let state = {
+    nameA: 'HOME', nameB: 'AWAY',
+    colorA: '#c0392b', colorB: '#1a5fa8',
+    scoreA: 0, scoreB: 0,
+    half: '1H'
+  };
+
+  // Ably setup
+  const ablyClient = new Ably.Realtime({ key: 'xVLyHw.8lLxqg:CTTH5bHbMjJGsPzA1v1Zog' });
+  const channel = ablyClient.channels.get(CHANNEL);
+
+  ablyClient.connection.on('connected', () => {
+    document.getElementById('dot').classList.add('connected');
+    document.getElementById('statusLabel').textContent = 'Live';
+    publish(); // push current state on connect
+  });
+  ablyClient.connection.on('disconnected', () => {
+    document.getElementById('dot').classList.remove('connected');
+    document.getElementById('statusLabel').textContent = 'Reconnecting…';
+  });
+
+  function publish() {
+    channel.publish('update', { ...state });
+    try { localStorage.setItem('scoreState', JSON.stringify(state)); } catch(e) {}
+    updatePreview();
+  }
+
+  function updatePreview() {
+    document.getElementById('prevNameA').textContent = state.nameA.toUpperCase();
+    document.getElementById('prevNameB').textContent = state.nameB.toUpperCase();
+    document.getElementById('prevScoreA').textContent = state.scoreA;
+    document.getElementById('prevScoreB').textContent = state.scoreB;
+    document.getElementById('prevScoreA').style.background = state.colorA;
+    document.getElementById('prevScoreB').style.background = state.colorB;
+    document.getElementById('prevHalf').textContent = state.half;
+  }
+
+  let lastTouch = 0;
+  function adj(t, d) {
+    const now = Date.now();
+    if (now - lastTouch < 120) return; // debounce double-fire on mobile
+    lastTouch = now;
+    if (t === 'A') state.scoreA = Math.max(0, state.scoreA + d);
+    else           state.scoreB = Math.max(0, state.scoreB + d);
+    document.getElementById('score' + t).textContent = t === 'A' ? state.scoreA : state.scoreB;
+    publish();
+  }
+
+  function onNameChange(t) {
+    state['name' + t] = document.getElementById('name' + t).value;
+    publish();
+  }
+
+  function onColorChange(t) {
+    const c = document.getElementById('color' + t).value;
+    state['color' + t] = c;
+    document.getElementById('swatch' + t).style.background = c;
+    document.getElementById('strip' + t).style.background = c;
+    publish();
+  }
+
+  function setHalf(h, btnId) {
+    state.half = h;
+    ['h1H','h2H','hHT','hFT'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById(btnId).classList.add('active');
+    publish();
+  }
+
+  function resetScores() {
+    state.scoreA = 0; state.scoreB = 0;
+    document.getElementById('scoreA').textContent = '0';
+    document.getElementById('scoreB').textContent = '0';
+    publish();
+  }
+
+  updatePreview();
+</script>
+</body>
+</html>

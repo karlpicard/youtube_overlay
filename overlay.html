@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scorebar Overlay</title>
+<script src="https://cdn.jsdelivr.net/npm/ably@1/ably.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@600&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 3%;
+    min-height: 100vh;
+  }
+
+  .scorebar {
+    display: flex;
+    align-items: center;
+    width: 75%;
+    max-width: 960px;
+    height: 48px;
+    border-radius: 4px;
+    overflow: hidden;
+    font-family: 'Teko', sans-serif;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  }
+
+  .team-block {
+    flex: 1;
+    height: 100%;
+    background: rgba(15, 15, 35, 0.92);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+  }
+  .team-a-block { justify-content: flex-end; }
+  .team-b-block { justify-content: flex-start; }
+
+  .team-name {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .score-center {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    flex-shrink: 0;
+  }
+
+  .score-box {
+    width: 48px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+    transition: background 0.3s;
+  }
+
+  .half-badge {
+    height: 100%;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(25, 25, 50, 0.95);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.12em;
+    font-family: sans-serif;
+    text-transform: uppercase;
+  }
+
+  .score-flash {
+    animation: flash 0.4s ease;
+  }
+  @keyframes flash {
+    0%   { opacity: 1; transform: scale(1); }
+    40%  { opacity: 0.6; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="scorebar">
+  <div class="team-block team-a-block">
+    <span class="team-name" id="nameA">HOME</span>
+  </div>
+  <div class="score-center">
+    <div class="score-box" id="scoreA" style="background:#c0392b;">0</div>
+    <div class="half-badge" id="half">1H</div>
+    <div class="score-box" id="scoreB" style="background:#1a5fa8;">0</div>
+  </div>
+  <div class="team-block team-b-block">
+    <span class="team-name" id="nameB">AWAY</span>
+  </div>
+</div>
+
+<script>
+  const CHANNEL = 'scoreboard-overlay-v1';
+
+  function applyState(state) {
+    if (!state) return;
+    if (state.nameA !== undefined) document.getElementById('nameA').textContent = state.nameA.toUpperCase();
+    if (state.nameB !== undefined) document.getElementById('nameB').textContent = state.nameB.toUpperCase();
+    if (state.colorA !== undefined) document.getElementById('scoreA').style.background = state.colorA;
+    if (state.colorB !== undefined) document.getElementById('scoreB').style.background = state.colorB;
+    if (state.scoreA !== undefined) {
+      const el = document.getElementById('scoreA');
+      el.textContent = state.scoreA;
+      el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
+    }
+    if (state.scoreB !== undefined) {
+      const el = document.getElementById('scoreB');
+      el.textContent = state.scoreB;
+      el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
+    }
+    if (state.half !== undefined) document.getElementById('half').textContent = state.half;
+  }
+
+  const ablyClient = new Ably.Realtime({ key: 'xVLyHw.8lLxqg:CTTH5bHbMjJGsPzA1v1Zog' });
+  const channel = ablyClient.channels.get(CHANNEL);
+  channel.subscribe('update', msg => applyState(msg.data));
+
+  setInterval(() => {
+    try {
+      const s = localStorage.getItem('scoreState');
+      if (s) applyState(JSON.parse(s));
+    } catch(e) {}
+  }, 500);
+</script>
+</body>
+</html>
