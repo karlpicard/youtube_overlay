@@ -76,6 +76,10 @@
     transition: background 0.3s;
   }
 
+  .score-box.contrast-ring {
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.7);
+  }
+
   .half-badge {
     height: 100%;
     padding: 0 12px;
@@ -131,8 +135,16 @@
     if (!state) return;
     if (state.nameA !== undefined) document.getElementById('nameA').textContent = state.nameA.toUpperCase();
     if (state.nameB !== undefined) document.getElementById('nameB').textContent = state.nameB.toUpperCase();
-    if (state.colorA !== undefined) document.getElementById('scoreA').style.background = state.colorA;
-    if (state.colorB !== undefined) document.getElementById('scoreB').style.background = state.colorB;
+    if (state.colorA !== undefined) {
+      const el = document.getElementById('scoreA');
+      el.style.background = state.colorA;
+      updateScoreContrast(el, state.colorA);
+    }
+    if (state.colorB !== undefined) {
+      const el = document.getElementById('scoreB');
+      el.style.background = state.colorB;
+      updateScoreContrast(el, state.colorB);
+    }
     if (state.scoreA !== undefined) {
       const el = document.getElementById('scoreA');
       el.textContent = state.scoreA;
@@ -144,6 +156,54 @@
       el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
     }
     if (state.half !== undefined) document.getElementById('half').textContent = state.half;
+  }
+
+  function parseColorToRgb(color) {
+    if (!color) return null;
+    const c = color.trim();
+
+    // #rgb or #rrggbb
+    if (c[0] === '#') {
+      const hex = c.slice(1);
+      if (hex.length === 3) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+        return { r, g, b };
+      }
+      if (hex.length === 6) {
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+        return { r, g, b };
+      }
+      return null;
+    }
+
+    // rgb(...) / rgba(...)
+    const match = c.match(/rgba?\(([^)]+)\)/i);
+    if (!match) return null;
+    const parts = match[1].split(',').map(p => p.trim());
+    if (parts.length < 3) return null;
+    const r = parseInt(parts[0], 10);
+    const g = parseInt(parts[1], 10);
+    const b = parseInt(parts[2], 10);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+    return { r, g, b };
+  }
+
+  function isDarkColor(color) {
+    const rgb = parseColorToRgb(color);
+    if (!rgb) return false;
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return luminance < 0.42;
+  }
+
+  function updateScoreContrast(el, color) {
+    if (isDarkColor(color)) el.classList.add('contrast-ring');
+    else el.classList.remove('contrast-ring');
   }
 
   if (window.Ably && ABLY_KEY) {
@@ -162,6 +222,10 @@
       if (s) applyState(JSON.parse(s));
     } catch(e) {}
   }, 500);
+
+  // Apply contrast ring to initial inline score colors.
+  updateScoreContrast(document.getElementById('scoreA'), document.getElementById('scoreA').style.background);
+  updateScoreContrast(document.getElementById('scoreB'), document.getElementById('scoreB').style.background);
 </script>
 </body>
 </html>
