@@ -506,7 +506,7 @@
   const params = new URLSearchParams(window.location.search);
   const rawSearch = window.location.search || '';
   const rawAblyMatch = rawSearch.match(/[?&]ablyKey=([^&]+)/i);
-  const decodedAblyFromSearch = rawAblyMatch ? decodeURIComponent(rawAblyMatch[1].replace(/\+/g, '%20')) : '';
+  const decodedAblyFromSearch = rawAblyMatch ? decodeURIComponent(rawAblyMatch[1]) : '';
 
   const urlChannel = (params.get('channel') || '').trim();
   const urlAblyKey = ((params.get('ablyKey') || decodedAblyFromSearch || '') + '').trim();
@@ -580,7 +580,13 @@
       ablyClient = null;
     }
 
-    if (window.Ably && currentAblyKey) {
+    if (!window.Ably) {
+      setStatus('Local mode (SDK unavailable)', false);
+      setLiveStatus('Ably library did not load. Check network/content blocker and reload.');
+      return;
+    }
+
+    if (currentAblyKey) {
       try {
         ablyClient = new Ably.Realtime({ key: currentAblyKey });
         channel = ablyClient.channels.get(currentChannel);
