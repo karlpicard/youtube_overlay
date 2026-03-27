@@ -3,7 +3,12 @@
 ## Event Day Priority (Immediate)
 
 - [ ] Stabilize Netlify token-auth function (`/.netlify/functions/ably-token`) and resolve Ably `40101` MAC mismatch.
-- [ ] Keep API-key mode as tomorrow fallback and document exact operator steps (apply key, copy overlay URL, verify Live).
+  - **Root cause**: sign string is missing a trailing `\n` after the last field. Ably spec requires each field terminated with `\n`, including `nonce`.
+  - **Fix**: in `netlify/functions/ably-token.js`, change `.join('\n')` → `.join('\n') + '\n'` on the `signText` array.
+  - **Secondary check**: confirm `timestamp` is milliseconds (Ably REST API uses ms; `Date.now()` is correct — do NOT convert to seconds).
+  - **Secondary check**: confirm `ttl` in sign string matches `ttl` in request body (both should be ms, e.g. `3600000`).
+  - **Test after fix**: `curl "https://lincoln-scoreboard.netlify.app/.netlify/functions/ably-token?channel=test-001&role=subscriber"` — expect JSON with `keyName`, `ttl`, `capability`, `clientId`, `timestamp`, `nonce`, `mac`.
+- [ ] Keep API-key mode as fallback and document exact operator steps (apply key, copy overlay URL, verify Live).
 - [ ] Add a quick pre-game auth check step: hit token endpoint and confirm JSON token response before kickoff.
 
 ## High Priority
