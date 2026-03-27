@@ -30,7 +30,7 @@ If anything fails:
 ## How It Works
 
 - `controller.html` is the operator interface.
-- `overlay.html` is the transparent display you place in OBS/Streamlabs/browser source.
+- `overlay.html` is the transparent display you place in Streamlabs as a Browser Source.
 - Both pages subscribe/publish on the same channel.
 - If you pass `channel` and `ablyKey` in the URL, both pages persist those values locally for reuse after refresh.
 - Controller includes a Live Links panel to generate/copy URLs and post them to Slack via webhook.
@@ -38,13 +38,13 @@ If anything fails:
 ## Files
 
 - `controller.html`: Control panel for names, colors, score, and period.
-- `overlay.html`: Transparent overlay designed for OBS/browser source.
+- `overlay.html`: Transparent overlay designed for Streamlabs Browser Source.
 
 ## Quick Start
 
 1. Open `controller.html` and `overlay.html` in your browser.
 2. Keep both tabs in the same browser/profile for local fallback sync.
-3. Add `overlay.html` to OBS as a Browser Source.
+3. Add `overlay.html` to Streamlabs as a Browser Source.
 
 ## Implementation Guide
 
@@ -63,7 +63,7 @@ This mode can work without Ably because both pages can share browser `localStora
 2. Create an Ably app/key.
 3. Open controller with params on device A:
 	`https://your-site/controller.html?channel=match-001&ablyKey=YOUR_KEY`
-4. Open overlay with the same params on device B/OBS:
+4. Open overlay with the same params on device B/Streamlabs:
 	`https://your-site/overlay.html?channel=match-001&ablyKey=YOUR_KEY`
 5. Verify controller status shows `Live`.
 
@@ -82,9 +82,9 @@ Slack message includes:
 - overlay URL
 - controller URL
 
-### Option 3: OBS/Stream Setup
+### Option 3: Streamlabs Setup
 
-1. In OBS, add a Browser Source.
+1. In Streamlabs, add a Browser Source.
 2. Paste your hosted `overlay.html` URL (include `channel` and `ablyKey`).
 3. Set width/height to your stream resolution (for example 1920x1080).
 4. Enable source refresh when needed while testing.
@@ -133,11 +133,17 @@ If no valid realtime connection is available, the app falls back to local mode u
 - Verify `ablyKey` is valid and has permission to publish/subscribe.
 - Open browser devtools and check for network or auth errors.
 
-### Works in browser but not in OBS
+### Works in browser but not in Streamlabs
 
-- Ensure OBS Browser Source URL exactly matches your tested overlay URL (including query params).
-- Disable OBS source cache while testing updates.
-- If using local mode, OBS and controller must share browser storage context; realtime mode is recommended for OBS.
+- Ensure Streamlabs Browser Source URL exactly matches your tested overlay URL (including query params).
+- Disable Streamlabs Browser Source cache while testing updates.
+- If using local mode, Streamlabs and controller must share browser storage context; realtime mode is recommended for Streamlabs.
+
+## Ably Quick Links
+
+- Dashboard: https://ably.com/accounts
+- API keys docs: https://ably.com/docs/auth/api-keys
+- JavaScript quickstart: https://ably.com/docs/getting-started/javascript
 
 ## Game Day Preflight
 
@@ -145,8 +151,8 @@ Run this 2-3 minute checklist before going live.
 
 1. Open `controller.html` and verify top-right status shows `Live` (green dot).
 2. Confirm `Live channel` and `Ably key` are set, then click `Apply Live Settings`.
-3. Click `Copy Overlay URL` and use that exact URL in OBS Browser Source.
-4. In OBS, temporarily disable Browser Source cache while validating updates.
+3. Click `Copy Overlay URL` and use that exact URL in Streamlabs Browser Source.
+4. In Streamlabs, temporarily disable Browser Source cache while validating updates.
 5. Press `+` on home and away once, confirm overlay updates in under 1 second.
 6. Set score back to correct values and confirm period (`1H/2H/HT/FT`).
 7. Verify team names and colors are correct for the match.
@@ -157,4 +163,4 @@ If preflight fails:
 
 - `Local mode (no key)`: apply key/channel again.
 - `Local mode`: key present but realtime failed; verify key/app, network, and blockers.
-- Overlay mismatch in OBS: paste the controller-generated overlay URL again.
+- Overlay mismatch in Streamlabs: paste the controller-generated overlay URL again.
