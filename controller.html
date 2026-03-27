@@ -588,6 +588,7 @@
   let state = {
     nameA: 'LINCOLN', nameB: 'AWAY',
     colorA: '#c0392b', colorB: '#1a5fa8',
+    scoreTextA: '#ffffff', scoreTextB: '#ffffff',
     scoreA: 0, scoreB: 0,
     half: '1H'
   };
@@ -604,6 +605,52 @@
   let ablyClient = null;
   let channel = null;
   let isRealtimeReady = false;
+
+  function parseColorToRgb(color) {
+    if (!color) return null;
+    const c = String(color).trim();
+
+    if (c[0] === '#') {
+      const hex = c.slice(1);
+      if (hex.length === 3) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+        return { r, g, b };
+      }
+      if (hex.length === 6) {
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+        return { r, g, b };
+      }
+      return null;
+    }
+
+    const match = c.match(/rgba?\(([^)]+)\)/i);
+    if (!match) return null;
+    const parts = match[1].split(',').map(p => p.trim());
+    if (parts.length < 3) return null;
+    const r = parseInt(parts[0], 10);
+    const g = parseInt(parts[1], 10);
+    const b = parseInt(parts[2], 10);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+    return { r, g, b };
+  }
+
+  function isDarkColor(color) {
+    const rgb = parseColorToRgb(color);
+    if (!rgb) return true;
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return luminance < 0.42;
+  }
+
+  function syncScoreTextColors() {
+    state.scoreTextA = isDarkColor(state.colorA) ? '#ffffff' : '#111111';
+    state.scoreTextB = isDarkColor(state.colorB) ? '#ffffff' : '#111111';
+  }
 
   function setStatus(mode, connected) {
     const dot = document.getElementById('dot');
@@ -844,6 +891,8 @@
     document.getElementById('prevScoreB').textContent = state.scoreB;
     document.getElementById('prevScoreA').style.background = state.colorA;
     document.getElementById('prevScoreB').style.background = state.colorB;
+    document.getElementById('prevScoreA').style.color = state.scoreTextA;
+    document.getElementById('prevScoreB').style.color = state.scoreTextB;
     document.getElementById('prevHalf').textContent = state.half;
   }
 
@@ -866,6 +915,7 @@
   function onColorChange(t) {
     const c = document.getElementById('color' + t).value;
     state['color' + t] = c;
+    syncScoreTextColors();
     document.getElementById('swatch' + t).style.background = c;
     document.getElementById('strip' + t).style.background = c;
     publish();
@@ -918,6 +968,7 @@
   } else {
     setLiveStatus('Key source: ' + keySource + '. Key loaded.');
   }
+  syncScoreTextColors();
   initRealtime();
   updateLiveHint();
   updatePreview();

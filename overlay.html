@@ -150,10 +150,16 @@
       el.textContent = state.scoreA;
       el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
     }
+    if (state.scoreTextA !== undefined) {
+      document.getElementById('scoreA').style.color = state.scoreTextA;
+    }
     if (state.scoreB !== undefined) {
       const el = document.getElementById('scoreB');
       el.textContent = state.scoreB;
       el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
+    }
+    if (state.scoreTextB !== undefined) {
+      document.getElementById('scoreB').style.color = state.scoreTextB;
     }
     if (state.half !== undefined) document.getElementById('half').textContent = state.half;
 
