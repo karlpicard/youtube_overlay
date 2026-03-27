@@ -138,12 +138,12 @@
     if (state.colorA !== undefined) {
       const el = document.getElementById('scoreA');
       el.style.background = state.colorA;
-      updateScoreContrast(el, state.colorA);
+      updateScoreAppearance(el, state.colorA);
     }
     if (state.colorB !== undefined) {
       const el = document.getElementById('scoreB');
       el.style.background = state.colorB;
-      updateScoreContrast(el, state.colorB);
+      updateScoreAppearance(el, state.colorB);
     }
     if (state.scoreA !== undefined) {
       const el = document.getElementById('scoreA');
@@ -156,6 +156,12 @@
       el.classList.remove('score-flash'); void el.offsetWidth; el.classList.add('score-flash');
     }
     if (state.half !== undefined) document.getElementById('half').textContent = state.half;
+
+    // Re-evaluate score appearance every render in case incoming payload omits color fields.
+    const scoreAEl = document.getElementById('scoreA');
+    const scoreBEl = document.getElementById('scoreB');
+    updateScoreAppearance(scoreAEl, getComputedStyle(scoreAEl).backgroundColor);
+    updateScoreAppearance(scoreBEl, getComputedStyle(scoreBEl).backgroundColor);
   }
 
   function parseColorToRgb(color) {
@@ -201,9 +207,13 @@
     return luminance < 0.42;
   }
 
-  function updateScoreContrast(el, color) {
-    if (isDarkColor(color)) el.classList.add('contrast-ring');
+  function updateScoreAppearance(el, color) {
+    const dark = isDarkColor(color);
+    if (dark) el.classList.add('contrast-ring');
     else el.classList.remove('contrast-ring');
+
+    // Use black text on light team colors and white text on dark colors.
+    el.style.color = dark ? '#ffffff' : '#111111';
   }
 
   if (window.Ably && ABLY_KEY) {
@@ -223,9 +233,9 @@
     } catch(e) {}
   }, 500);
 
-  // Apply contrast ring to initial inline score colors.
-  updateScoreContrast(document.getElementById('scoreA'), document.getElementById('scoreA').style.background);
-  updateScoreContrast(document.getElementById('scoreB'), document.getElementById('scoreB').style.background);
+  // Apply score text/ring contrast to initial inline score colors.
+  updateScoreAppearance(document.getElementById('scoreA'), document.getElementById('scoreA').style.background);
+  updateScoreAppearance(document.getElementById('scoreB'), document.getElementById('scoreB').style.background);
 </script>
 </body>
 </html>
