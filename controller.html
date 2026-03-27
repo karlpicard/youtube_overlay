@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Score Controller</title>
 <script src="vendor/ably.min.js"></script>
+<script src="local-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -79,6 +80,10 @@
   .prev-team {
     flex: 1; display: flex; align-items: center; padding: 0 12px;
     font-size: 20px; font-weight: 600; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .prev-team-a { justify-content: flex-end; }
   .prev-team-b { justify-content: flex-start; }
@@ -309,6 +314,10 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: break-word;
+    min-height: 42px;
   }
 
   .live-btn.primary {
@@ -324,10 +333,16 @@
 
   .live-toggle {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     color: #c8c8e0;
     font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .live-toggle input[type='checkbox'] {
+    margin-top: 2px;
+    flex-shrink: 0;
   }
 
   .live-status {
@@ -421,6 +436,57 @@
     color: #9fb1ff;
     text-decoration: underline;
   }
+
+  @media (max-width: 480px) {
+    header {
+      padding: 14px 14px 10px;
+    }
+
+    .logo {
+      font-size: 22px;
+    }
+
+    .preview,
+    .mode-banner,
+    .main {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
+
+    .main {
+      padding: 0;
+    }
+
+    .prev-team {
+      font-size: 17px;
+      padding: 0 8px;
+    }
+
+    .prev-score {
+      width: 32px;
+      font-size: 22px;
+    }
+
+    .prev-half {
+      padding: 0 6px;
+      font-size: 10px;
+    }
+
+    .score-btn {
+      height: 64px;
+      font-size: 32px;
+    }
+
+    .score-display {
+      flex-basis: 72px;
+      font-size: 46px;
+      padding: 8px 0;
+    }
+
+    .live-btn-row {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 </head>
 <body>
@@ -450,7 +516,7 @@
   <!-- Team A -->
   <div class="team-card">
     <div class="team-card-header">
-      <input class="team-name-input" id="nameA" type="text" value="LINCOLN" maxlength="12" placeholder="Team A" oninput="onNameChange('A')" />
+      <input class="team-name-input" id="nameA" type="text" value="LINCOLN" maxlength="16" placeholder="Team A" oninput="onNameChange('A')" autocorrect="off" autocapitalize="characters" spellcheck="false" />
       <div class="color-swatch" id="swatchA" style="background:#c0392b;">
         <input type="color" id="colorA" value="#c0392b" oninput="onColorChange('A')" />
       </div>
@@ -466,7 +532,7 @@
   <!-- Team B -->
   <div class="team-card">
     <div class="team-card-header">
-      <input class="team-name-input" id="nameB" type="text" value="AWAY" maxlength="12" placeholder="Team B" oninput="onNameChange('B')" />
+      <input class="team-name-input" id="nameB" type="text" value="AWAY" maxlength="16" placeholder="Team B" oninput="onNameChange('B')" autocorrect="off" autocapitalize="characters" spellcheck="false" />
       <div class="color-swatch" id="swatchB" style="background:#1a5fa8;">
         <input type="color" id="colorB" value="#1a5fa8" oninput="onColorChange('B')" />
       </div>
@@ -564,6 +630,8 @@
   const urlYoutubeLive = (params.get('youtubeLiveUrl') || '').trim();
   const urlSlackWebhook = (params.get('slackWebhook') || '').trim();
   const urlAutoSlack = params.get('autoSlack');
+  const runtimeDefaults = (window.SCOREPAD_DEFAULTS && typeof window.SCOREPAD_DEFAULTS === 'object') ? window.SCOREPAD_DEFAULTS : {};
+  const runtimeDefaultSlackWebhook = String(runtimeDefaults.slackWebhook || '').trim();
 
   function safeStorageGet(key) {
     try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
@@ -582,7 +650,7 @@
   let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
   let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
   let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
-  let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || '';
+  let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || runtimeDefaultSlackWebhook || '';
   let keySource = urlAblyKey ? 'URL' : (safeStorageGet('ablyKey') ? 'Saved' : 'None');
 
   let state = {
@@ -600,6 +668,10 @@
     scoreB: 0,
     half: '1H'
   };
+
+  const TEAM_NAME_MAX = 16;
+  const SCORE_MIN = 0;
+  const SCORE_MAX = 99;
 
   // Realtime setup with graceful fallback (local preview and localStorage still work)
   let ablyClient = null;
@@ -650,6 +722,32 @@
   function syncScoreTextColors() {
     state.scoreTextA = isDarkColor(state.colorA) ? '#ffffff' : '#111111';
     state.scoreTextB = isDarkColor(state.colorB) ? '#ffffff' : '#111111';
+  }
+
+  function clampScore(value) {
+    const n = Number.parseInt(value, 10);
+    if (Number.isNaN(n)) return SCORE_MIN;
+    return Math.max(SCORE_MIN, Math.min(SCORE_MAX, n));
+  }
+
+  function sanitizeTeamName(value, options = {}) {
+    const trimEdges = options.trimEdges !== false;
+    let cleaned = String(value || '')
+      .replace(/[\r\n\t]+/g, ' ')
+      // iOS double-space shortcut inserts a period; remove it for team names.
+      .replace(/\./g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/[^A-Za-z0-9 &'/-]/g, '');
+    if (trimEdges) cleaned = cleaned.trim();
+    return cleaned.slice(0, TEAM_NAME_MAX);
+  }
+
+  function normalizeState() {
+    state.nameA = sanitizeTeamName(state.nameA);
+    state.nameB = sanitizeTeamName(state.nameB);
+    state.scoreA = clampScore(state.scoreA);
+    state.scoreB = clampScore(state.scoreB);
+    syncScoreTextColors();
   }
 
   function setStatus(mode, connected) {
@@ -877,6 +975,7 @@
   }
 
   function publish() {
+    normalizeState();
     if (isRealtimeReady && channel) {
       channel.publish('update', { ...state });
     }
@@ -901,14 +1000,17 @@
     const now = Date.now();
     if (now - lastTouch < 120) return; // debounce double-fire on mobile
     lastTouch = now;
-    if (t === 'A') state.scoreA = Math.max(0, state.scoreA + d);
-    else           state.scoreB = Math.max(0, state.scoreB + d);
+    if (t === 'A') state.scoreA = clampScore(state.scoreA + d);
+    else           state.scoreB = clampScore(state.scoreB + d);
     document.getElementById('score' + t).textContent = t === 'A' ? state.scoreA : state.scoreB;
     publish();
   }
 
   function onNameChange(t) {
-    state['name' + t] = document.getElementById('name' + t).value;
+    const input = document.getElementById('name' + t);
+    const sanitized = sanitizeTeamName(input.value, { trimEdges: false });
+    if (input.value !== sanitized) input.value = sanitized;
+    state['name' + t] = sanitized;
     publish();
   }
 

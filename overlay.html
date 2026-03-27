@@ -89,9 +89,9 @@
     background: rgba(25, 25, 50, 0.95);
     border-left: 1px solid rgba(255,255,255,0.08);
     border-right: 1px solid rgba(255,255,255,0.08);
-    font-size: 15px;
-    font-weight: 600;
-    color: #b8bfd8;
+    font-size: 16px;
+    font-weight: 800;
+    color: #eef2ff;
     letter-spacing: 0.1em;
     font-family: sans-serif;
     text-transform: uppercase;
@@ -130,11 +130,16 @@
   if (urlAblyKey) localStorage.setItem('ablyKey', urlAblyKey);
   const CHANNEL = urlChannel || localStorage.getItem('overlayChannel') || 'scoreboard-overlay-v1';
   const ABLY_KEY = urlAblyKey || localStorage.getItem('ablyKey') || '';
+  const TEAM_NAME_MAX = 16;
+
+  function normalizeTeamName(value) {
+    return String(value || '').trim().slice(0, TEAM_NAME_MAX);
+  }
 
   function applyState(state) {
     if (!state) return;
-    if (state.nameA !== undefined) document.getElementById('nameA').textContent = state.nameA.toUpperCase();
-    if (state.nameB !== undefined) document.getElementById('nameB').textContent = state.nameB.toUpperCase();
+    if (state.nameA !== undefined) document.getElementById('nameA').textContent = normalizeTeamName(state.nameA).toUpperCase();
+    if (state.nameB !== undefined) document.getElementById('nameB').textContent = normalizeTeamName(state.nameB).toUpperCase();
     if (state.colorA !== undefined) {
       const el = document.getElementById('scoreA');
       el.style.background = state.colorA;

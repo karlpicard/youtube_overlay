@@ -82,6 +82,21 @@ Slack message includes:
 - overlay URL
 - controller URL
 
+### Optional: Local Default Slack Webhook (not committed)
+
+If you want a default webhook value without storing it in the repo:
+
+1. Copy `local-config.example.js` to `local-config.js`.
+2. Set your webhook in `local-config.js`:
+	`window.SCOREPAD_DEFAULTS = { slackWebhook: "https://hooks.slack.com/services/..." };`
+3. Keep `local-config.js` local only. It is gitignored.
+
+Load order in controller is:
+
+1. URL param `slackWebhook`
+2. Saved `localStorage` value
+3. `local-config.js` default
+
 ### Option 3: Streamlabs Setup
 
 1. In Streamlabs, add a Browser Source.
@@ -164,3 +179,14 @@ If preflight fails:
 - `Local mode (no key)`: apply key/channel again.
 - `Local mode`: key present but realtime failed; verify key/app, network, and blockers.
 - Overlay mismatch in Streamlabs: paste the controller-generated overlay URL again.
+
+## Manual Smoke Checklist (iPhone + Streamlabs)
+
+Run this quick checklist after any update.
+
+1. On iPhone Safari, open `controller.html` and verify all major buttons are fully visible in portrait mode.
+2. Set team names with spaces (example: `NEW YORK`) and verify the names persist without punctuation inserts.
+3. Set one light team color (`#ffffff`) and one dark team color (`#111111`); verify score text flips to dark/light for readability.
+4. Change score and period on iPhone; verify the Streamlabs Browser Source updates in near real time.
+5. Refresh only the Streamlabs source and confirm state is restored correctly.
+6. Confirm reset flow requires confirmation and fully resets names, score, and period.
