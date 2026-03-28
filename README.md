@@ -34,7 +34,6 @@ If anything fails:
 - Both pages subscribe/publish on the same channel.
 - If you pass `channel`, `ablyKey`, or `ablyAuthUrl` in the URL, both pages persist those values locally for reuse after refresh.
 - Controller includes a Live Links panel to generate/copy URLs and post them to Slack via webhook.
-- The site root (`/`) can show the latest YouTube live link and automatically clears it after 150 minutes.
 
 ## Files
 
@@ -84,7 +83,6 @@ This mode can work without Ably because both pages can share browser `localStora
 4. Paste your Slack incoming webhook URL.
 5. Click `Send to Slack`.
 6. Optional: enable `Auto-send Slack update when applying settings`.
-7. The site root page updates with the same YouTube link and clears automatically after 150 minutes.
 
 Slack message includes:
 
@@ -103,9 +101,6 @@ If you want a default webhook value without storing it in the repo:
 
 You can also set a default token endpoint there:
 	`window.SCOREPAD_DEFAULTS = { ablyAuthUrl: "https://your-site/.netlify/functions/ably-token" };`
-
-If you protect the live-link endpoint with a Netlify env var, you can also set:
-	`window.SCOREPAD_DEFAULTS = { liveLinkWriteToken: "your-shared-write-token" };`
 
 Load order in controller is:
 
@@ -129,7 +124,6 @@ Both pages support the same query params:
 - `ablyKey`: Ably API key for realtime sync (legacy/fallback)
 - `ablyAuthUrl`: Token auth endpoint URL (default: `/.netlify/functions/ably-token`)
 - `youtubeLiveUrl`: Optional YouTube viewer link saved in controller for sharing
-- `liveLinkToken`: Optional token used by controller to write the home-page live link when `LIVE_LINK_WRITE_TOKEN` is set in Netlify
 
 Important: for production, prefer token auth (`ablyAuthUrl`) and keep `ABLY_API_KEY` only on the server/Netlify env vars.
 

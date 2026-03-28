@@ -631,11 +631,9 @@
   const urlYoutubeLive = (params.get('youtubeLiveUrl') || '').trim();
   const urlSlackWebhook = (params.get('slackWebhook') || '').trim();
   const urlAutoSlack = params.get('autoSlack');
-  const urlLiveLinkToken = (params.get('liveLinkToken') || '').trim();
   const runtimeDefaults = (window.SCOREPAD_DEFAULTS && typeof window.SCOREPAD_DEFAULTS === 'object') ? window.SCOREPAD_DEFAULTS : {};
   const runtimeDefaultSlackWebhook = String(runtimeDefaults.slackWebhook || '').trim();
   const runtimeDefaultAblyAuthUrl = String(runtimeDefaults.ablyAuthUrl || '').trim();
-  const runtimeDefaultLiveLinkToken = String(runtimeDefaults.liveLinkWriteToken || '').trim();
 
   function safeStorageGet(key) {
     try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
@@ -651,14 +649,12 @@
   if (urlYoutubeLive) safeStorageSet('youtubeLiveUrl', urlYoutubeLive);
   if (urlSlackWebhook) safeStorageSet('slackWebhook', urlSlackWebhook);
   if (urlAutoSlack) safeStorageSet('autoSlack', urlAutoSlack === '1' ? '1' : '0');
-  if (urlLiveLinkToken) safeStorageSet('liveLinkWriteToken', urlLiveLinkToken);
 
   let currentChannel = urlChannel || safeStorageGet('overlayChannel') || 'scoreboard-overlay-v1';
   let currentAblyKey = urlAblyKey || safeStorageGet('ablyKey') || '';
   let currentAblyAuthUrl = urlAblyAuthUrl || safeStorageGet('ablyAuthUrl') || runtimeDefaultAblyAuthUrl || '/.netlify/functions/ably-token';
   let currentYoutubeLiveUrl = urlYoutubeLive || safeStorageGet('youtubeLiveUrl') || '';
   let currentSlackWebhook = urlSlackWebhook || safeStorageGet('slackWebhook') || runtimeDefaultSlackWebhook || '';
-  let currentLiveLinkWriteToken = urlLiveLinkToken || safeStorageGet('liveLinkWriteToken') || runtimeDefaultLiveLinkToken || '';
   let keySource = urlAblyKey ? 'URL' : (safeStorageGet('ablyKey') ? 'Saved' : 'None');
 
   let state = {
@@ -857,36 +853,6 @@
     document.getElementById('liveStatus').textContent = text;
   }
 
-  function buildLiveLinkEndpoint() {
-    return new URL('/.netlify/functions/live-link', window.location.href).toString();
-  }
-
-  async function publishYoutubeLiveLink() {
-    if (!currentYoutubeLiveUrl) {
-      return { skipped: true };
-    }
-
-    const headers = { 'Content-Type': 'application/json' };
-    if (currentLiveLinkWriteToken) headers['X-Live-Link-Token'] = currentLiveLinkWriteToken;
-
-    const response = await fetch(buildLiveLinkEndpoint(), {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ url: currentYoutubeLiveUrl })
-    });
-
-    if (!response.ok) {
-      let message = 'Landing page update failed.';
-      try {
-        const data = await response.json();
-        if (data && data.error) message = data.error;
-      } catch (e) {}
-      throw new Error(message);
-    }
-
-    return response.json();
-  }
-
   async function copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
@@ -947,12 +913,7 @@
         mode: 'no-cors',
         body: JSON.stringify(payload)
       });
-      try {
-        await publishYoutubeLiveLink();
-        setLiveStatus('YouTube live link sent to Slack and published on the site home page.');
-      } catch (error) {
-        setLiveStatus('Slack send requested, but home page link update failed. ' + error.message);
-      }
+      setLiveStatus('YouTube live link sent to Slack.');
     } catch (e) {
       setLiveStatus('Slack send failed. Check webhook URL/network.');
     }
@@ -1031,16 +992,7 @@
         mode: 'no-cors',
         body: JSON.stringify(payload)
       });
-      if (!currentYoutubeLiveUrl) {
-        setLiveStatus('Slack webhook request sent.');
-        return;
-      }
-      try {
-        await publishYoutubeLiveLink();
-        setLiveStatus('Slack webhook request sent and site home page updated.');
-      } catch (error) {
-        setLiveStatus('Slack webhook request sent, but home page link update failed. ' + error.message);
-      }
+      setLiveStatus('Slack webhook request sent.');
     } catch (e) {
       setLiveStatus('Slack send failed. Check webhook URL/network.');
     }

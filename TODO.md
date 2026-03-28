@@ -11,6 +11,12 @@
 - [ ] Keep API-key mode as fallback and document exact operator steps (apply key, copy overlay URL, verify Live).
 - [ ] Add a quick pre-game auth check step: hit token endpoint and confirm JSON token response before kickoff.
 
+## Informational Notes
+
+- Archived the experimental live-link landing page work instead of keeping it active in production.
+- Archive location: `archive/live-link-landing-page/`
+- Archived contents include the landing page, Netlify function, and controller integration snippet so the feature can be restored later without rebuilding it from scratch.
+
 ## High Priority
 
 - [ ] Replace client-side Ably key usage with token auth or a server-issued capability token.
