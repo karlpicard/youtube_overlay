@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lincoln Gx Varsity Ultimate</title>
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --bg-accent: #dbe8f7;
+      --panel: rgba(255, 250, 240, 0.84);
+      --text: #1d2935;
+      --muted: #5f6f7f;
+      --accent: #be2f29;
+      --accent-dark: #7e1d18;
+      --line: rgba(29, 41, 53, 0.12);
+      --shadow: 0 18px 50px rgba(29, 41, 53, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI Variable Display", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(190, 47, 41, 0.18), transparent 34%),
+        radial-gradient(circle at right 18%, rgba(38, 107, 173, 0.16), transparent 30%),
+        linear-gradient(135deg, var(--bg), var(--bg-accent));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(780px, 100%);
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 28px 28px 18px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08)),
+        linear-gradient(120deg, rgba(190, 47, 41, 0.12), rgba(38, 107, 173, 0.08));
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent-dark);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      max-width: 9ch;
+    }
+
+    .subhead {
+      margin: 14px 0 0;
+      max-width: 44ch;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .content {
+      padding: 26px 28px 30px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      border-radius: 22px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(29, 41, 53, 0.08);
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #97a6b3;
+      box-shadow: 0 0 0 5px rgba(151, 166, 179, 0.16);
+    }
+
+    .dot.live {
+      background: #1c9b58;
+      box-shadow: 0 0 0 5px rgba(28, 155, 88, 0.16);
+    }
+
+    .live-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 64px;
+      width: 100%;
+      border-radius: 18px;
+      padding: 18px 22px;
+      background: linear-gradient(135deg, var(--accent), #d95e44);
+      color: #fffdf9;
+      text-decoration: none;
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      box-shadow: 0 14px 30px rgba(190, 47, 41, 0.24);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      word-break: break-word;
+    }
+
+    .live-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(190, 47, 41, 0.28);
+    }
+
+    .archive-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 54px;
+      width: 100%;
+      border-radius: 16px;
+      padding: 14px 18px;
+      background: rgba(29, 41, 53, 0.06);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      border: 1px solid rgba(29, 41, 53, 0.1);
+      transition: background 140ms ease, transform 140ms ease;
+    }
+
+    .archive-link:hover {
+      background: rgba(29, 41, 53, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .placeholder {
+      margin: 0;
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .detail {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .meta-block {
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: rgba(245, 239, 228, 0.72);
+      border: 1px solid rgba(29, 41, 53, 0.08);
+    }
+
+    .meta-label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .hero, .content { padding-left: 20px; padding-right: 20px; }
+      .meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Lincoln Gx Varsity Ultimate</p>
+      <h1>Current stream link</h1>
+      <p class="subhead">When the operator sends the YouTube link to Slack, this page updates with the same viewer URL and clears itself automatically after 150 minutes.</p>
+    </section>
+
+    <section class="content">
+      <section class="card">
+        <div class="status-row"><span class="dot" id="statusDot"></span><span id="statusText">Checking for a live link…</span></div>
+        <div id="liveLinkRegion"></div>
+        <p class="detail" id="detailText">This page refreshes itself every five minutes.</p>
+      </section>
+
+      <section class="card">
+        <div class="status-row"><span class="dot live"></span><span>Previous livestreams</span></div>
+        <a class="archive-link" href="https://www.youtube.com/playlist?list=PLG9WF1CpGQdlIfeeBUFW2zo_1PVE8Mz3a" target="_blank" rel="noopener">Watch previous live streams</a>
+        <p class="detail">Use this playlist when there is no current live event or if you want to rewatch earlier games.</p>
+      </section>
+
+      <section class="meta">
+        <div class="meta-block">
+          <span class="meta-label">Posted</span>
+          <span class="meta-value" id="postedAt">--</span>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">Resets In</span>
+          <span class="meta-value" id="expiresIn">--</span>
+        </div>
+      </section>
+
+      <p class="footer-note">Use the controller’s Slack send actions to update this page. If the timer runs out, the link disappears until a new one is posted.</p>
+    </section>
+  </main>
+
+  <script>
+    const endpoint = new URL('/.netlify/functions/live-link', window.location.href).toString();
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const liveLinkRegion = document.getElementById('liveLinkRegion');
+    const detailText = document.getElementById('detailText');
+    const postedAt = document.getElementById('postedAt');
+    const expiresIn = document.getElementById('expiresIn');
+
+    function formatDate(value) {
+      if (!value) return '--';
+      return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatRemaining(expiresAt) {
+      if (!expiresAt) return '--';
+      const remainingMs = Math.max(0, expiresAt - Date.now());
+      const totalMinutes = Math.ceil(remainingMs / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (hours > 0) return hours + 'h ' + String(minutes).padStart(2, '0') + 'm';
+      return totalMinutes + 'm';
+    }
+
+    function renderInactive() {
+      statusDot.classList.remove('live');
+      statusText.textContent = 'No current live link';
+      liveLinkRegion.innerHTML = '<p class="placeholder">No stream URL is active right now.</p>';
+      detailText.textContent = 'Once the operator posts a new YouTube link from the controller, it will appear here.';
+      postedAt.textContent = '--';
+      expiresIn.textContent = '--';
+    }
+
+    function renderActive(data) {
+      statusDot.classList.add('live');
+      statusText.textContent = 'Live link active';
+      liveLinkRegion.innerHTML = '';
+      const link = document.createElement('a');
+      link.className = 'live-link';
+      link.href = data.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'Open YouTube Live Stream';
+      liveLinkRegion.appendChild(link);
+      detailText.textContent = data.url;
+      postedAt.textContent = formatDate(data.updatedAt);
+      expiresIn.textContent = formatRemaining(data.expiresAt);
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Request failed');
+        const data = await response.json();
+        if (data.active && data.url) renderActive(data);
+        else renderInactive();
+      } catch (error) {
+        statusDot.classList.remove('live');
+        statusText.textContent = 'Could not load live link';
+        liveLinkRegion.innerHTML = '<p class="placeholder">Live link status unavailable.</p>';
+        detailText.textContent = 'Reload this page after checking that the Netlify function is deployed.';
+        postedAt.textContent = '--';
+        expiresIn.textContent = '--';
+      }
+    }
+
+    refresh();
+    window.setInterval(refresh, 300000);
+  </script>
+</body>
+</html>

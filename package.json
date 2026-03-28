@@ -2,5 +2,8 @@
   "name": "youtube_overlay",
   "private": true,
   "version": "1.0.0",
-  "description": "Livestream scoreboard controller and overlay"
+  "description": "Livestream scoreboard controller and overlay",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
 }

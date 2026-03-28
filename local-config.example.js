@@ -3,5 +3,7 @@ window.SCOREPAD_DEFAULTS = {
   // local-config.js is ignored by git.
   slackWebhook: "",
   // Optional: override token auth endpoint (defaults to /.netlify/functions/ably-token)
-  ablyAuthUrl: ""
+  ablyAuthUrl: "",
+  // Optional: matches Netlify env var LIVE_LINK_WRITE_TOKEN if you want write protection.
+  liveLinkWriteToken: ""
 };
